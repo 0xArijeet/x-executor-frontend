@@ -59,7 +59,28 @@ Open http://localhost:5173
 bun run build
 ```
 
-Set `PUBLIC_HUB_API_URL` and `PUBLIC_HUB_PUBLIC_BASE_URL` at build time for static deploys, or serve behind a reverse proxy that forwards `/api` to Hub.
+Set `PUBLIC_HUB_API_URL` and `PUBLIC_HUB_PUBLIC_BASE_URL` at build time for static deploys. Hub enables CORS, so you can set `PUBLIC_HUB_API_URL` to your Hub URL on Vercel (no `/api` rewrite required).
+
+## Deploy on Vercel
+
+1. **Root directory:** `x-executor-frontend` (if the Git repo is the parent monorepo folder).
+2. **Framework preset:** Other (or leave auto; [`vercel.json`](vercel.json) sets `framework: null`).
+3. **Environment variables** (Production, applied at build time):
+
+   | Variable | Example |
+   |----------|---------|
+   | `PUBLIC_HUB_API_URL` | `https://your-hub.example.com` |
+   | `PUBLIC_HUB_PUBLIC_BASE_URL` | `https://your-hub.example.com` |
+
+4. **Hub** (separate deploy): `OAUTH_SUCCESS_REDIRECT_URL=https://your-app.vercel.app/oauth/success`
+
+[`vercel.json`](vercel.json) runs `bun install --frozen-lockfile` and `bun run build`, output `dist/`. Commit `bun.lock` and `.bun-version`.
+
+If install still fails, in Vercel → Project → Settings → General → **Node.js Version** use **22.x**, and ensure **Install Command** is not overridden to `npm install`. Optional override:
+
+```bash
+corepack enable && bun install --frozen-lockfile
+```
 
 ## Local end-to-end checklist
 

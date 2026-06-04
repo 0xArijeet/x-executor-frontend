@@ -2,6 +2,7 @@
   "name": "x-executor-frontend",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "bun@1.2.23",
   "type": "module",
   "scripts": {
     "dev": "bun --hot src/index.tsx",
@@ -27,6 +28,6 @@
   "devDependencies": {
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@types/bun": "latest"
+    "@types/bun": "1.2.23"
   }
 }
