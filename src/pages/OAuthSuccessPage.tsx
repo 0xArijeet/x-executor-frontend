@@ -12,8 +12,8 @@ export function OAuthSuccessPage() {
   const xUsername = params.get("xUsername");
   const orgId = params.get("orgId");
   const xUserId = params.get("xUserId");
-  const webhookId = params.get("webhookId");
   const webhookUrl = params.get("webhookUrl");
+  const subscribed = params.get("subscribed");
   const inviteToken = params.get("invite");
 
   const hasData = Boolean(xUsername || orgId);
@@ -96,10 +96,10 @@ export function OAuthSuccessPage() {
                 <dd className="font-mono break-all">{xUserId}</dd>
               </div>
             )}
-            {webhookId && (
+            {subscribed !== null && (
               <div>
-                <dt className="text-muted-foreground">Webhook ID</dt>
-                <dd className="font-mono break-all">{webhookId}</dd>
+                <dt className="text-muted-foreground">X subscription</dt>
+                <dd>{subscribed === "true" ? "Active" : "Pending — check Hub logs"}</dd>
               </div>
             )}
             {webhookUrl && (

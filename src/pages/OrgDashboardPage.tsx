@@ -1,4 +1,5 @@
 import { ErrorAlert, errorMessage } from "@/components/ErrorAlert";
+import { OrgPromptForm } from "@/components/OrgPromptForm";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +10,7 @@ import { useAuth } from "@/lib/auth/AuthContext";
 import { connectionsApi, orgsApi } from "@/lib/hub/api";
 import type { Connection, Organization } from "@/lib/hub/types";
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 
 export function OrgDashboardPage() {
   const { orgId } = useParams<{ orgId: string }>();
@@ -75,6 +76,40 @@ export function OrgDashboardPage() {
       </div>
 
       <ErrorAlert error={error} />
+
+      {admin && token && orgId && (
+        <Card className="mb-6">
+          <CardHeader>
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <CardTitle className="text-lg">Automation prompts</CardTitle>
+                <CardDescription>
+                  Configure how the bot replies to inbound DMs for this organization.
+                </CardDescription>
+              </div>
+              {!org?.systemPrompt?.trim() && (
+                <Badge variant="destructive">System prompt not set</Badge>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            <OrgPromptForm
+              token={token}
+              orgId={orgId}
+              initialSystemPrompt={org?.systemPrompt ?? ""}
+              initialUnknownReply={org?.unknownReply ?? ""}
+              onSaved={setOrg}
+              compact
+            />
+            <p className="mt-4 text-xs text-muted-foreground">
+              <Link to={`/orgs/${orgId}/settings`} className="text-primary underline">
+                Organization settings
+              </Link>{" "}
+              also lists members.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {connections.length === 0 ? (
         <Card>

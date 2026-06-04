@@ -57,8 +57,8 @@ export type Connection = {
   scopes: string[];
   connectedAt: string;
   tokenExpiresAt?: string;
-  webhookId?: string;
   webhookUrl?: string;
+  subscribed?: boolean;
   hasAuthToken: boolean;
 };
 

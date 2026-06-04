@@ -1,12 +1,10 @@
+import { OrgPromptForm } from "@/components/OrgPromptForm";
 import { ErrorAlert, errorMessage } from "@/components/ErrorAlert";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { orgsApi } from "@/lib/hub/api";
 import type { Member, Organization } from "@/lib/hub/types";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
 export function OrgSettingsPage() {
@@ -14,12 +12,8 @@ export function OrgSettingsPage() {
   const { token } = useAuth();
   const [org, setOrg] = useState<Organization | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
-  const [systemPrompt, setSystemPrompt] = useState("");
-  const [unknownReply, setUnknownReply] = useState("");
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     if (!token || !orgId) return;
@@ -27,30 +21,11 @@ export function OrgSettingsPage() {
     Promise.all([orgsApi.get(token, orgId), orgsApi.members(token, orgId)])
       .then(([o, m]) => {
         setOrg(o);
-        setSystemPrompt(o.systemPrompt ?? "");
-        setUnknownReply(o.unknownReply ?? "");
         setMembers(m);
       })
       .catch(err => setError(errorMessage(err)))
       .finally(() => setLoading(false));
   }, [token, orgId]);
-
-  async function onSavePrompt(e: FormEvent) {
-    e.preventDefault();
-    if (!token || !orgId) return;
-    setError(null);
-    setSuccess(null);
-    setSaving(true);
-    try {
-      const updated = await orgsApi.updatePrompt(token, orgId, { systemPrompt, unknownReply });
-      setOrg(updated);
-      setSuccess("Prompts saved.");
-    } catch (err) {
-      setError(errorMessage(err));
-    } finally {
-      setSaving(false);
-    }
-  }
 
   if (loading) return <p className="text-muted-foreground">Loading…</p>;
 
@@ -62,39 +37,22 @@ export function OrgSettingsPage() {
       </div>
 
       <ErrorAlert error={error} />
-      {success && <p className="text-sm text-green-600 dark:text-green-400">{success}</p>}
 
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Organization prompts</CardTitle>
-          <CardDescription>System prompt and fallback reply for automation.</CardDescription>
+          <CardDescription>System prompt and fallback reply for DM automation.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={onSavePrompt} className="flex flex-col gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="systemPrompt">System prompt</Label>
-              <Textarea
-                id="systemPrompt"
-                rows={6}
-                value={systemPrompt}
-                onChange={e => setSystemPrompt(e.target.value)}
-                placeholder="You are a helpful assistant for..."
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="unknownReply">Unknown reply</Label>
-              <Textarea
-                id="unknownReply"
-                rows={3}
-                value={unknownReply}
-                onChange={e => setUnknownReply(e.target.value)}
-                placeholder="I don't know how to answer that."
-              />
-            </div>
-            <Button type="submit" disabled={saving}>
-              {saving ? "Saving…" : "Save prompts"}
-            </Button>
-          </form>
+          {token && orgId && (
+            <OrgPromptForm
+              token={token}
+              orgId={orgId}
+              initialSystemPrompt={org?.systemPrompt ?? ""}
+              initialUnknownReply={org?.unknownReply ?? ""}
+              onSaved={setOrg}
+            />
+          )}
         </CardContent>
       </Card>
 

@@ -109,6 +109,9 @@ export function OrgsListPage() {
                     <Badge variant="secondary">{org.role}</Badge>
                   </div>
                   {org.slug && <CardDescription>{org.slug}</CardDescription>}
+                  {(org.role === "owner" || org.role === "admin") && !org.systemPrompt?.trim() && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400">Set a system prompt to enable DM replies</p>
+                  )}
                 </CardHeader>
               </Card>
             </Link>

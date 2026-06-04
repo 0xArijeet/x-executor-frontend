@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { isAdmin, useOrgRole } from "@/lib/auth/RequireOrgRole";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { cn } from "@/lib/utils";
 import { Link, NavLink, Outlet, useParams } from "react-router-dom";
@@ -6,6 +7,8 @@ import { Link, NavLink, Outlet, useParams } from "react-router-dom";
 export function AppShell() {
   const { user, logout } = useAuth();
   const { orgId } = useParams<{ orgId: string }>();
+  const role = useOrgRole(orgId);
+  const admin = isAdmin(role);
 
   return (
     <div className="min-h-screen bg-background">
@@ -26,22 +29,26 @@ export function AppShell() {
                 >
                   Connections
                 </NavLink>
-                <NavLink
-                  to={`/orgs/${orgId}/invites`}
-                  className={({ isActive }) =>
-                    cn("text-muted-foreground hover:text-foreground", isActive && "text-foreground font-medium")
-                  }
-                >
-                  Invites
-                </NavLink>
-                <NavLink
-                  to={`/orgs/${orgId}/settings`}
-                  className={({ isActive }) =>
-                    cn("text-muted-foreground hover:text-foreground", isActive && "text-foreground font-medium")
-                  }
-                >
-                  Settings
-                </NavLink>
+                {admin && (
+                  <>
+                    <NavLink
+                      to={`/orgs/${orgId}/invites`}
+                      className={({ isActive }) =>
+                        cn("text-muted-foreground hover:text-foreground", isActive && "text-foreground font-medium")
+                      }
+                    >
+                      Invites
+                    </NavLink>
+                    <NavLink
+                      to={`/orgs/${orgId}/settings`}
+                      className={({ isActive }) =>
+                        cn("text-muted-foreground hover:text-foreground", isActive && "text-foreground font-medium")
+                      }
+                    >
+                      Settings
+                    </NavLink>
+                  </>
+                )}
               </nav>
             )}
           </div>
