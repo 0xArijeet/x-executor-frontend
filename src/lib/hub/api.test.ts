@@ -1,5 +1,5 @@
 import { afterEach, expect, mock, test } from "bun:test";
-import { connectionsApi } from "./api";
+import { campaignsApi, connectionsApi } from "./api";
 
 const originalFetch = globalThis.fetch;
 
@@ -43,4 +43,57 @@ test("connectionsApi.setAuthToken PATCHes auth-token with bearer token", async (
 
   const result = await connectionsApi.setAuthToken("jwt-test", "org-2", "conn-2", "secret-token");
   expect(result).toEqual({ updated: true, hasAuthToken: true });
+});
+
+test("campaignsApi.create POSTs campaign with bearer token", async () => {
+  const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
+    expect(String(input)).toContain("/api/v1/orgs/org-1/campaigns");
+    expect(init?.method).toBe("POST");
+    expect(JSON.parse(String(init?.body))).toEqual({
+      targetUsernames: ["alice", "bob"],
+      messageText: "Hello",
+    });
+    return jsonResponse({
+      id: "camp-1",
+      status: "pending",
+      totalTargets: 2,
+      messageText: "Hello",
+      targetUsernames: ["alice", "bob"],
+      createdAt: "2026-01-01T00:00:00.000Z",
+    });
+  });
+  globalThis.fetch = fetchMock as typeof fetch;
+
+  const result = await campaignsApi.create("jwt-test", "org-1", {
+    targetUsernames: ["alice", "bob"],
+    messageText: "Hello",
+  });
+  expect(result.id).toBe("camp-1");
+});
+
+test("campaignsApi.getStatus GETs campaign status", async () => {
+  const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
+    expect(String(input)).toContain("/api/v1/orgs/org-1/campaigns/camp-1/status");
+    expect(init?.method).toBeUndefined();
+    return jsonResponse({
+      id: "camp-1",
+      orgId: "org-1",
+      status: "running",
+      messageText: "Hello",
+      targetUsernames: ["alice"],
+      totalTargets: 1,
+      messagesScheduled: 1,
+      messagesSent: 0,
+      repliesReceived: 0,
+      failedCount: 0,
+      remaining: 1,
+      progressPercent: 0,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    });
+  });
+  globalThis.fetch = fetchMock as typeof fetch;
+
+  const result = await campaignsApi.getStatus("jwt-test", "org-1", "camp-1");
+  expect(result.status).toBe("running");
 });

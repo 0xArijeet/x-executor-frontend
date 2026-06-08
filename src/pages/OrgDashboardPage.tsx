@@ -57,12 +57,19 @@ export function OrgDashboardPage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold">{org?.name ?? "Organization"}</h1>
-        <p className="text-muted-foreground">
-          X connections and DM automation readiness.{" "}
-          {role === "member" && "Members can view connections; admins manage invites and secrets."}
-        </p>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold">{org?.name ?? "Organization"}</h1>
+          <p className="text-muted-foreground">
+            X connections and DM automation readiness.{" "}
+            {role === "member" && "Members can view connections; admins manage invites and secrets."}
+          </p>
+        </div>
+        {admin && orgId && (
+          <Button asChild variant="outline" size="sm">
+            <Link to={`/orgs/${orgId}/campaigns/new`}>New campaign</Link>
+          </Button>
+        )}
       </div>
 
       <ErrorAlert error={error} />

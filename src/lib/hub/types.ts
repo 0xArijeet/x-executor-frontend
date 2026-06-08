@@ -77,3 +77,39 @@ export type CreateOrgInput = {
   name: string;
   slug?: string;
 };
+
+export type CampaignStatus = "pending" | "running" | "completed" | "failed";
+
+export type CreateCampaignInput = {
+  targetUsernames: string[];
+  messageText: string;
+};
+
+export type CreateCampaignResponse = {
+  id: string;
+  status: CampaignStatus;
+  totalTargets: number;
+  messageText: string;
+  targetUsernames: string[];
+  createdAt: string;
+};
+
+export type CampaignStatusResponse = {
+  id: string;
+  orgId: string;
+  status: CampaignStatus;
+  messageText: string;
+  targetUsernames: string[];
+  totalTargets: number;
+  messagesScheduled: number;
+  messagesSent: number;
+  repliesReceived: number;
+  failedCount: number;
+  remaining: number;
+  progressPercent: number;
+  startedAt?: string;
+  expectedEndAt?: string;
+  completedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+};

@@ -54,6 +54,8 @@ Open http://localhost:5173
 | `/login`, `/register` | Public | Hub JWT auth |
 | `/orgs` | JWT | List/create orgs; prompt hint for admins |
 | `/orgs/:orgId` | JWT + member | Connections, readiness badges, prompts (admin), auth token + XChat PIN (admin) |
+| `/orgs/:orgId/campaigns/new` | JWT + admin | Create bulk DM campaign |
+| `/orgs/:orgId/campaigns/:campaignId` | JWT + member | Campaign progress (polls Hub status) |
 | `/orgs/:orgId/invites` | JWT + admin | Invite CRUD |
 | `/orgs/:orgId/settings` | JWT + admin | Prompts + members |
 | `/connect/:token` | Public | Invite → OAuth 1.0a |
@@ -68,9 +70,18 @@ After OAuth connect, configure each connection:
 | `subscribed` | Subscribed badge | Account Activity subscription |
 | `hasAuthToken` | Auth token field | Outbound DMs + legacy DM fetch |
 | `hasXchatPin` | XChat PIN field (4–8 digits) | Decrypt encrypted XChat inbound |
-| Org `systemPrompt` | Prompt form | LLM replies (required) |
+| Org `systemPrompt` | Prompt form | LLM inbound replies (required for auto-reply) |
+| `hasAuthToken` on ≥1 connection | Auth token on connection cards | **Campaign DMs** (bulk outbound) |
 
 PIN and auth token are password fields — submit once to Hub, never stored in frontend state after save.
+
+## Campaign DMs (admin)
+
+1. Ensure at least one connection has **auth token** saved (`/orgs/:orgId`).
+2. **Campaigns** nav → enter target usernames (one per line) and message → **Launch campaign**.
+3. Progress page polls `GET /api/v1/orgs/:orgId/campaigns/:id/status` every 15s until complete.
+
+Requires Hub `NATS_URL` plus background **Scheduler**, **Sender**, and **Analytics** services (see monorepo [railway.md](../x-executor/docs/railway.md)).
 
 ## Production / Vercel
 

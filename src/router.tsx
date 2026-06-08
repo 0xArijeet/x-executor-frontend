@@ -2,6 +2,8 @@ import { AppShell, PublicShell } from "@/components/layout/AppShell";
 import { AuthProvider } from "@/lib/auth/AuthContext";
 import { RequireAuth } from "@/lib/auth/RequireAuth";
 import { RequireOrgRole } from "@/lib/auth/RequireOrgRole";
+import { CampaignCreatePage } from "@/pages/CampaignCreatePage";
+import { CampaignProgressPage } from "@/pages/CampaignProgressPage";
 import { ConnectPage } from "@/pages/ConnectPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { OAuthSuccessPage } from "@/pages/OAuthSuccessPage";
@@ -48,6 +50,22 @@ const router = createBrowserRouter([
         element: (
           <RequireOrgRole>
             <OrgDashboardPage />
+          </RequireOrgRole>
+        ),
+      },
+      {
+        path: "orgs/:orgId/campaigns/new",
+        element: (
+          <RequireOrgRole adminOnly>
+            <CampaignCreatePage />
+          </RequireOrgRole>
+        ),
+      },
+      {
+        path: "orgs/:orgId/campaigns/:campaignId",
+        element: (
+          <RequireOrgRole>
+            <CampaignProgressPage />
           </RequireOrgRole>
         ),
       },

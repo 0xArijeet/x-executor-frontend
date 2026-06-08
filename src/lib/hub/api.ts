@@ -11,6 +11,9 @@ import type {
   OrganizationWithRole,
   UpdatePromptInput,
   User,
+  CreateCampaignInput,
+  CreateCampaignResponse,
+  CampaignStatusResponse,
 } from "./types";
 
 export const authApi = {
@@ -106,6 +109,21 @@ export const connectionsApi = {
   revoke(token: string, orgId: string, connectionId: string) {
     return hubFetch<{ revoked: boolean }>(`/orgs/${orgId}/connections/${connectionId}`, {
       method: "DELETE",
+      token,
+    });
+  },
+};
+
+export const campaignsApi = {
+  create(token: string, orgId: string, input: CreateCampaignInput) {
+    return hubFetch<CreateCampaignResponse>(`/orgs/${orgId}/campaigns`, {
+      method: "POST",
+      token,
+      body: JSON.stringify(input),
+    });
+  },
+  getStatus(token: string, orgId: string, campaignId: string) {
+    return hubFetch<CampaignStatusResponse>(`/orgs/${orgId}/campaigns/${campaignId}/status`, {
       token,
     });
   },

@@ -30,6 +30,16 @@ export function AppShell() {
                   Connections
                 </NavLink>
                 {admin && (
+                  <NavLink
+                    to={`/orgs/${orgId}/campaigns/new`}
+                    className={({ isActive }) =>
+                      cn("text-muted-foreground hover:text-foreground", isActive && "text-foreground font-medium")
+                    }
+                  >
+                    Campaigns
+                  </NavLink>
+                )}
+                {admin && (
                   <>
                     <NavLink
                       to={`/orgs/${orgId}/invites`}
