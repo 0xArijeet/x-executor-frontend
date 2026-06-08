@@ -115,7 +115,8 @@ export function OAuthSuccessPage() {
           </dl>
         )}
         <p className="text-sm text-muted-foreground">
-          You can close this window. An admin can manage this connection from the dashboard.
+          You can close this window. An admin must set the <strong className="text-foreground">auth token</strong> and{" "}
+          <strong className="text-foreground">XChat PIN</strong> on this connection before automated DM replies work.
         </p>
         <Button variant="outline" asChild>
           <Link to="/login">Admin login</Link>

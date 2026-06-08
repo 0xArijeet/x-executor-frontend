@@ -1,10 +1,10 @@
 import { ErrorAlert, errorMessage } from "@/components/ErrorAlert";
+import { ConnectionAdminPanel } from "@/components/ConnectionAdminPanel";
+import { ConnectionStatusBadges } from "@/components/ConnectionStatusBadges";
 import { OrgPromptForm } from "@/components/OrgPromptForm";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { isAdmin, useOrgRole } from "@/lib/auth/RequireOrgRole";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { connectionsApi, orgsApi } from "@/lib/hub/api";
@@ -22,7 +22,6 @@ export function OrgDashboardPage() {
   const [connections, setConnections] = useState<Connection[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [authTokenInputs, setAuthTokenInputs] = useState<Record<string, string>>({});
 
   function load() {
     if (!token || !orgId) return;
@@ -52,30 +51,30 @@ export function OrgDashboardPage() {
     }
   }
 
-  async function handleSetAuthToken(connectionId: string) {
-    if (!token || !orgId) return;
-    const authToken = authTokenInputs[connectionId]?.trim();
-    if (!authToken) return;
-    setError(null);
-    try {
-      await connectionsApi.setAuthToken(token, orgId, connectionId, authToken);
-      setAuthTokenInputs(prev => ({ ...prev, [connectionId]: "" }));
-      load();
-    } catch (err) {
-      setError(errorMessage(err));
-    }
-  }
-
   if (loading) return <p className="text-muted-foreground">Loading…</p>;
+
+  const promptMissing = !org?.systemPrompt?.trim();
 
   return (
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-semibold">{org?.name ?? "Organization"}</h1>
-        <p className="text-muted-foreground">X account connections for this organization.</p>
+        <p className="text-muted-foreground">
+          X connections and DM automation readiness.{" "}
+          {role === "member" && "Members can view connections; admins manage invites and secrets."}
+        </p>
       </div>
 
       <ErrorAlert error={error} />
+
+      {admin && promptMissing && (
+        <Card className="mb-6 border-amber-500/40">
+          <CardContent className="py-4 text-sm text-muted-foreground">
+            <strong className="text-foreground">System prompt not set.</strong> The processor skips automated DM
+            replies until an admin saves a prompt below.
+          </CardContent>
+        </Card>
+      )}
 
       {admin && token && orgId && (
         <Card className="mb-6">
@@ -83,13 +82,9 @@ export function OrgDashboardPage() {
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
                 <CardTitle className="text-lg">Automation prompts</CardTitle>
-                <CardDescription>
-                  Configure how the bot replies to inbound DMs for this organization.
-                </CardDescription>
+                <CardDescription>LLM instructions for inbound DM replies.</CardDescription>
               </div>
-              {!org?.systemPrompt?.trim() && (
-                <Badge variant="destructive">System prompt not set</Badge>
-              )}
+              {promptMissing && <Badge variant="destructive">Required for replies</Badge>}
             </div>
           </CardHeader>
           <CardContent>
@@ -115,11 +110,12 @@ export function OrgDashboardPage() {
         <Card>
           <CardContent className="py-8 text-center text-muted-foreground space-y-2">
             <p>No X accounts linked yet.</p>
-            <p className="text-sm">
-              Create an invite, share <strong className="text-foreground">Open connect page</strong>, and have the user
-              tap <strong className="text-foreground">Authorize with X</strong> on X&apos;s screen. Being logged into
-              x.com alone is not enough.
-            </p>
+            {admin && (
+              <p className="text-sm">
+                Create an invite under <strong className="text-foreground">Invites</strong>, share{" "}
+                <strong className="text-foreground">Open connect page</strong>, and have the user authorize on X.
+              </p>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -127,52 +123,36 @@ export function OrgDashboardPage() {
           {connections.map(conn => (
             <Card key={conn.id}>
               <CardHeader>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <CardTitle className="text-lg">@{conn.xUsername}</CardTitle>
-                  <div className="flex gap-2">
-                    {conn.hasAuthToken && <Badge variant="secondary">Auth token set</Badge>}
-                    <Badge variant="outline">{conn.scopes?.length ?? 0} scopes</Badge>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <CardTitle className="text-lg">@{conn.xUsername}</CardTitle>
+                    <CardDescription>
+                      Connected {conn.connectedAt ? new Date(conn.connectedAt).toLocaleString() : "—"}
+                    </CardDescription>
                   </div>
+                  <ConnectionStatusBadges connection={conn} />
                 </div>
-                <CardDescription>
-                  Connected {conn.connectedAt ? new Date(conn.connectedAt).toLocaleString() : "—"}
-                  {conn.tokenExpiresAt && (
-                    <> · Token expires {new Date(conn.tokenExpiresAt).toLocaleString()}</>
-                  )}
-                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 {conn.webhookUrl && (
                   <p>
                     <span className="text-muted-foreground">Webhook: </span>
-                    <a href={conn.webhookUrl} target="_blank" rel="noreferrer" className="text-primary underline break-all">
-                      {conn.webhookUrl}
-                    </a>
+                    <span className="font-mono text-xs break-all">{conn.webhookUrl}</span>
                   </p>
                 )}
-                {admin && (
-                  <div className="flex flex-col gap-3 border-t border-border pt-3">
-                    <div className="flex flex-wrap items-end gap-2">
-                      <div className="flex-1 min-w-[200px] space-y-1">
-                        <Label htmlFor={`token-${conn.id}`}>Automation auth token</Label>
-                        <Input
-                          id={`token-${conn.id}`}
-                          type="password"
-                          placeholder="Set secret for downstream automation"
-                          value={authTokenInputs[conn.id] ?? ""}
-                          onChange={e =>
-                            setAuthTokenInputs(prev => ({ ...prev, [conn.id]: e.target.value }))
-                          }
-                        />
-                      </div>
-                      <Button size="sm" onClick={() => handleSetAuthToken(conn.id)}>
-                        Save token
-                      </Button>
-                    </div>
+                {admin && token && orgId && (
+                  <>
+                    <ConnectionAdminPanel
+                      token={token}
+                      orgId={orgId}
+                      connectionId={conn.id}
+                      onUpdated={load}
+                      onError={setError}
+                    />
                     <Button variant="destructive" size="sm" onClick={() => handleRevoke(conn.id, conn.xUsername)}>
                       Revoke connection
                     </Button>
-                  </div>
+                  </>
                 )}
               </CardContent>
             </Card>

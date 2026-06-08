@@ -60,6 +60,7 @@ export type Connection = {
   webhookUrl?: string;
   subscribed?: boolean;
   hasAuthToken: boolean;
+  hasXchatPin: boolean;
 };
 
 export type CreateInviteInput = {

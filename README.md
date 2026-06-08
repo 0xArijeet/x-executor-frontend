@@ -1,12 +1,16 @@
 # X Executor Frontend
 
-Admin dashboard and public connect flow for the [X Executor Hub](../x-executor/apps/hub) API. Built with Bun, React 19, and Tailwind.
+Admin dashboard and public connect flow for the [X Executor Hub](../x-executor/apps/hub) API (OAuth 1.0a, Account Activity, DM automation). Built with Bun, React 19, and Tailwind.
+
+See also [CREATE_AND_INTEGRATE_FRONTEND.md](../x-executor/docs/CREATE_AND_INTEGRATE_FRONTEND.md) in the monorepo for full architecture.
 
 ## Prerequisites
 
-1. **Hub** running locally from the `x-executor` monorepo (MongoDB, Redis, X OAuth app configured).
-2. **X Developer App** with OAuth 2.0 user context; callback URL on Hub:
+1. **Hub** + MongoDB + Redis (see [railway.md](../x-executor/docs/railway.md)).
+2. **X Developer App** with **OAuth 1.0a** (Consumer Keys), **Read, Write, and Direct Messages**, and **Account Activity API** access.
+3. Hub callback URL (exact match in X Developer Portal):
    - Local: `http://localhost:3000/api/v1/oauth/x/callback`
+   - Production: `https://<hub-domain>/api/v1/oauth/x/callback`
 
 ## Environment
 
@@ -14,110 +18,124 @@ Copy `.env.example` to `.env`:
 
 | Variable | Example | Purpose |
 |----------|---------|---------|
-| `PORT` | `5173` | Frontend server (Hub uses 3000) |
-| `HUB_API_URL` | `http://localhost:3000` | Server proxy target for `/api/*` |
-| `PUBLIC_HUB_API_URL` | *(empty)* | Client API base; empty = same-origin proxy |
-| `PUBLIC_HUB_PUBLIC_BASE_URL` | `http://localhost:3000` | OAuth start URLs (must hit Hub) |
+| `PORT` | `5173` | Dev server (Hub uses 3000) |
+| `HUB_API_URL` | `http://localhost:3000` | Dev proxy target |
+| `PUBLIC_HUB_API_URL` | *(empty locally)* | Client API base; production = Hub URL |
+| `PUBLIC_HUB_PUBLIC_BASE_URL` | `http://localhost:3000` | OAuth start links (Hub origin) |
 
-In **`x-executor/.env`** (Hub), set:
+**Hub** (`.env` in `x-executor`):
 
 ```bash
 OAUTH_SUCCESS_REDIRECT_URL=http://localhost:5173/oauth/success
 HUB_PUBLIC_BASE_URL=http://localhost:3000
+WEBHOOK_PUBLIC_BASE_URL=http://localhost:3001
+X_API_KEY=...
+X_API_KEY_SECRET=...
+X_REDIRECT_URI=http://localhost:3000/api/v1/oauth/x/callback
+X_REGISTER_WEBHOOKS_WITH_X=true
 ```
 
 ## Development
 
 ```bash
-# Terminal 1 — from x-executor repo
-yarn install
-yarn start:hub:dev
+# Terminal 1 — x-executor
+yarn install && yarn start:hub:dev
 
 # Terminal 2 — this repo
-bun install
-cp .env.example .env   # if needed
-bun dev
+bun install && cp .env.example .env && bun dev
 ```
 
 Open http://localhost:5173
 
 ## Routes
 
-| Route | Description |
-|-------|-------------|
-| `/login`, `/register` | Hub JWT auth |
-| `/orgs` | List and create organizations |
-| `/orgs/:orgId` | X connections (list, revoke, auth token) |
-| `/orgs/:orgId/invites` | Create/list/revoke invites (admin) |
-| `/orgs/:orgId/settings` | Prompts and members (admin) |
-| `/connect/:token` | Public invite → Connect with X |
-| `/oauth/success` | Post-OAuth confirmation (Hub redirect target) |
+| Route | Access | Purpose |
+|-------|--------|---------|
+| `/login`, `/register` | Public | Hub JWT auth |
+| `/orgs` | JWT | List/create orgs; prompt hint for admins |
+| `/orgs/:orgId` | JWT + member | Connections, readiness badges, prompts (admin), auth token + XChat PIN (admin) |
+| `/orgs/:orgId/invites` | JWT + admin | Invite CRUD |
+| `/orgs/:orgId/settings` | JWT + admin | Prompts + members |
+| `/connect/:token` | Public | Invite → OAuth 1.0a |
+| `/oauth/success` | Public | Hub redirect after connect |
 
-## Production build
+## Connection readiness (admin dashboard)
 
-```bash
-bun run build
-```
+After OAuth connect, configure each connection:
 
-Set `PUBLIC_HUB_API_URL` and `PUBLIC_HUB_PUBLIC_BASE_URL` at build time for static deploys. Hub enables CORS, so you can set `PUBLIC_HUB_API_URL` to your Hub URL on Vercel (no `/api` rewrite required).
+| Flag | UI | Purpose |
+|------|-----|---------|
+| `subscribed` | Subscribed badge | Account Activity subscription |
+| `hasAuthToken` | Auth token field | Outbound DMs + legacy DM fetch |
+| `hasXchatPin` | XChat PIN field (4–8 digits) | Decrypt encrypted XChat inbound |
+| Org `systemPrompt` | Prompt form | LLM replies (required) |
 
-## Deploy on Vercel
+PIN and auth token are password fields — submit once to Hub, never stored in frontend state after save.
 
-1. **Root directory:** `x-executor-frontend` (if the Git repo is the parent monorepo folder).
-2. **Framework preset:** Other (or leave auto; [`vercel.json`](vercel.json) sets `framework: null`).
-3. **Environment variables** (Production, applied at build time):
-
-   | Variable | Example |
-   |----------|---------|
-   | `PUBLIC_HUB_API_URL` | `https://your-hub.example.com` |
-   | `PUBLIC_HUB_PUBLIC_BASE_URL` | `https://your-hub.example.com` |
-
-4. **Hub** (separate deploy): `OAUTH_SUCCESS_REDIRECT_URL=https://your-app.vercel.app/oauth/success`
-
-[`vercel.json`](vercel.json) runs `bun install --frozen-lockfile` and `bun run build`, output `dist/`. Commit `bun.lock` and `.bun-version`.
-
-If install still fails, in Vercel → Project → Settings → General → **Node.js Version** use **22.x**, and ensure **Install Command** is not overridden to `npm install`. Optional override:
+## Production / Vercel
 
 ```bash
-corepack enable && bun install --frozen-lockfile
+bun run build   # output: dist/
 ```
 
-## Troubleshooting X connect
+Set at **build time**:
 
-**“I’m already logged into X but it still asks me to connect”** — Normal. Being signed in at x.com is not the same as authorizing this app. The user must open the invite link, tap **Authorize with X**, and approve on X’s screen. Success ends on `/oauth/success` with `@username` shown.
+```bash
+PUBLIC_HUB_API_URL=https://your-hub.up.railway.app
+PUBLIC_HUB_PUBLIC_BASE_URL=https://your-hub.up.railway.app
+```
 
-**X shows JSON `"Redirect is requested"` after Authorize** — X wants the login flow first. Hub must use `buildBrowserAuthorizeUrl` (redirect via `twitter.com/i/flow/login`). Redeploy Hub after updating.
+Hub production:
 
-**X OAuth 400 / “not working”** — Usually Hub `X_REDIRECT_URI` is wrong. It must be a full URL, e.g. `https://your-hub.up.railway.app/api/v1/oauth/x/callback`, registered identically in the X Developer Portal. A broken value looks like `https:///api/v1/oauth/x/callback` (missing hostname).
+```bash
+OAUTH_SUCCESS_REDIRECT_URL=https://your-app.vercel.app/oauth/success
+HUB_PUBLIC_BASE_URL=https://your-hub.up.railway.app
+WEBHOOK_PUBLIC_BASE_URL=https://your-webhook.up.railway.app
+```
 
-| Check | Where |
-|-------|--------|
-| `X_REDIRECT_URI` | Hub env + X Developer Portal callback |
-| `HUB_PUBLIC_BASE_URL` | Hub env (full Hub URL) |
-| `PUBLIC_HUB_PUBLIC_BASE_URL` | Vercel env (same Hub URL, set at build time) |
-| `OAUTH_SUCCESS_REDIRECT_URL` | Hub env → `https://your-app.vercel.app/oauth/success` |
-
-After Hub env changes, redeploy Hub and create a **new invite** if the old one expired or hit max uses.
-
-**Stuck on `/connect` or `/login` after signing in**
-
-| Symptom | Likely cause |
-|---------|----------------|
-| Login form works but returns to `/login` | `PUBLIC_HUB_API_URL` not set on Vercel (rebuild after adding env) |
-| X authorize succeeds but `/connect` again | `OAUTH_SUCCESS_REDIRECT_URL` wrong — must be `https://<vercel>/oauth/success`, not `/connect` or `/login` |
-| Hub JSON page after X | `OAUTH_SUCCESS_REDIRECT_URL` unset on Hub |
-| Connect shows “max uses” after one success | Normal — use a new invite or confirm connection in admin dashboard |
+[`vercel.json`](vercel.json): `bun install --frozen-lockfile`, SPA rewrite to `index.html`.
 
 ## Local end-to-end checklist
 
-1. Start Hub on port **3000** with `OAUTH_SUCCESS_REDIRECT_URL=http://localhost:5173/oauth/success`.
-2. Start frontend on **5173** (`bun dev`).
-3. Register → create org → create invite.
-4. Open `/connect/<inviteToken>` → Connect with X → land on `/oauth/success`.
-5. In admin UI, verify the new `@username` under Connections; test prompts, members, invite revoke.
+1. Hub, Webhook, Processor (+ NATS) if testing DM pipeline.
+2. Register → create org → **save system prompt**.
+3. Create invite → `/connect/<token>` → Authorize on X → `/oauth/success`.
+4. Admin: connection shows `@username`, `subscribed: true`.
+5. Set **auth token** and **XChat PIN** on the connection.
+6. Optional: send XChat DM or favorite a tweet to verify pipeline.
+
+## Troubleshooting
+
+**X OAuth / connect**
+
+| Issue | Fix |
+|-------|-----|
+| `redirect_uri` mismatch | Hub `X_REDIRECT_URI` must match X Developer Portal callback exactly |
+| JSON `"Redirect is requested"` | Redeploy Hub with browser login-flow redirect |
+| Back to `/connect` after X | `OAUTH_SUCCESS_REDIRECT_URL` must be `https://<vercel>/oauth/success` |
+| Login loop on Vercel | Set `PUBLIC_HUB_API_URL` and redeploy frontend |
+
+**DM automation**
+
+| Symptom | UI action |
+|---------|-----------|
+| No replies | Save org system prompt |
+| XChat silent | Set XChat PIN on connection |
+| Send fails | Set auth token |
+| `subscribed: false` | Check Hub `X_REGISTER_WEBHOOKS_WITH_X` and webhook deploy |
 
 ## Tests
 
 ```bash
 bun test
 ```
+
+## Key source files
+
+| Path | Role |
+|------|------|
+| `src/lib/hub/api.ts` | Hub API client |
+| `src/components/OrgPromptForm.tsx` | System prompt editor |
+| `src/components/ConnectionAdminPanel.tsx` | Auth token + XChat PIN |
+| `src/pages/ConnectPage.tsx` | Public OAuth start |
+| `src/hub-proxy.ts` | Dev API proxy |

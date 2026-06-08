@@ -84,11 +84,24 @@ export const connectionsApi = {
     return hubFetch<Connection[]>(`/orgs/${orgId}/connections`, { token });
   },
   setAuthToken(token: string, orgId: string, connectionId: string, authToken: string) {
-    return hubFetch<{ updated: boolean }>(`/orgs/${orgId}/connections/${connectionId}/auth-token`, {
-      method: "PATCH",
-      token,
-      body: JSON.stringify({ authToken }),
-    });
+    return hubFetch<{ updated: boolean; hasAuthToken: boolean }>(
+      `/orgs/${orgId}/connections/${connectionId}/auth-token`,
+      {
+        method: "PATCH",
+        token,
+        body: JSON.stringify({ authToken }),
+      },
+    );
+  },
+  setXchatPin(token: string, orgId: string, connectionId: string, xchatPin: string) {
+    return hubFetch<{ updated: boolean; hasXchatPin: boolean }>(
+      `/orgs/${orgId}/connections/${connectionId}/xchat-pin`,
+      {
+        method: "PATCH",
+        token,
+        body: JSON.stringify({ xchatPin }),
+      },
+    );
   },
   revoke(token: string, orgId: string, connectionId: string) {
     return hubFetch<{ revoked: boolean }>(`/orgs/${orgId}/connections/${connectionId}`, {
