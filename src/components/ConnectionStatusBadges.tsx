@@ -17,7 +17,7 @@ export function ConnectionStatusBadges({ connection }: { connection: Connection 
       {connection.hasXchatPin ? (
         <Badge variant="secondary">XChat PIN</Badge>
       ) : (
-        <Badge variant="outline">XChat PIN required</Badge>
+        <Badge variant="destructive">XChat PIN required</Badge>
       )}
     </div>
   );

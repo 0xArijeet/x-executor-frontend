@@ -26,6 +26,8 @@ export function ConnectionAdminPanel({
   const [xchatPin, setXchatPin] = useState("");
   const [savingToken, setSavingToken] = useState(false);
   const [savingPin, setSavingPin] = useState(false);
+  const [tokenSaved, setTokenSaved] = useState(false);
+  const [pinSaved, setPinSaved] = useState(false);
 
   async function handleSaveAuthToken() {
     const value = authToken.trim();
@@ -35,6 +37,8 @@ export function ConnectionAdminPanel({
     try {
       await connectionsApi.setAuthToken(token, orgId, connectionId, value);
       setAuthToken("");
+      setTokenSaved(true);
+      setPinSaved(false);
       onUpdated();
     } catch (err) {
       onError(errorMessage(err));
@@ -53,6 +57,8 @@ export function ConnectionAdminPanel({
     try {
       await connectionsApi.setXchatPin(token, orgId, connectionId, xchatPin);
       setXchatPin("");
+      setPinSaved(true);
+      setTokenSaved(false);
       onUpdated();
     } catch (err) {
       onError(errorMessage(err));
@@ -78,13 +84,19 @@ export function ConnectionAdminPanel({
             autoComplete="off"
             placeholder="Paste auth_token once"
             value={authToken}
-            onChange={e => setAuthToken(e.target.value)}
+            onChange={e => {
+              setAuthToken(e.target.value);
+              setTokenSaved(false);
+            }}
             className="max-w-md"
           />
           <Button size="sm" disabled={!authToken.trim() || savingToken} onClick={handleSaveAuthToken}>
             {savingToken ? "Saving…" : "Save auth token"}
           </Button>
         </div>
+        {tokenSaved && (
+          <p className="text-xs text-green-600 dark:text-green-500">Auth token saved. Badge updates after refresh.</p>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -102,13 +114,19 @@ export function ConnectionAdminPanel({
             placeholder="4–8 digits"
             maxLength={8}
             value={xchatPin}
-            onChange={e => setXchatPin(e.target.value.replace(/\D/g, ""))}
+            onChange={e => {
+              setXchatPin(e.target.value.replace(/\D/g, ""));
+              setPinSaved(false);
+            }}
             className="max-w-[140px]"
           />
           <Button size="sm" disabled={!pinValid || savingPin} onClick={handleSaveXchatPin}>
             {savingPin ? "Saving…" : "Save XChat PIN"}
           </Button>
         </div>
+        {pinSaved && (
+          <p className="text-xs text-green-600 dark:text-green-500">XChat PIN saved. Encrypted on Hub; not kept in this browser.</p>
+        )}
       </div>
     </div>
   );

@@ -115,12 +115,20 @@ export function OAuthSuccessPage() {
           </dl>
         )}
         <p className="text-sm text-muted-foreground">
-          You can close this window. An admin must set the <strong className="text-foreground">auth token</strong> and{" "}
+          You can close this window. An org admin must open the organization dashboard and set the{" "}
+          <strong className="text-foreground">auth token</strong> and{" "}
           <strong className="text-foreground">XChat PIN</strong> on this connection before automated DM replies work.
         </p>
-        <Button variant="outline" asChild>
-          <Link to="/login">Admin login</Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          {orgId && (
+            <Button asChild>
+              <Link to={`/orgs/${orgId}`}>Configure connection (admin)</Link>
+            </Button>
+          )}
+          <Button variant="outline" asChild>
+            <Link to="/login">Admin login</Link>
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
