@@ -45,17 +45,60 @@ test("connectionsApi.setAuthToken PATCHes auth-token with bearer token", async (
   expect(result).toEqual({ updated: true, hasAuthToken: true });
 });
 
+test("campaignsApi.list GETs org campaigns", async () => {
+  const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
+    expect(String(input)).toContain("/xbot/v1/api/orgs/org-1/campaigns");
+    expect(init?.method).toBeUndefined();
+    return jsonResponse([
+      {
+        id: "camp-1",
+        name: "Q1 outreach",
+        status: "running",
+        totalTargets: 10,
+        messagesSent: 3,
+        failedCount: 1,
+        progressPercent: 40,
+        createdAt: "2026-01-01T00:00:00.000Z",
+      },
+    ]);
+  });
+  globalThis.fetch = fetchMock as typeof fetch;
+
+  const result = await campaignsApi.list("jwt-test", "org-1");
+  expect(result).toHaveLength(1);
+  expect(result[0]?.name).toBe("Q1 outreach");
+});
+
+test("campaignsApi.updateName PATCHes campaign name", async () => {
+  const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
+    expect(String(input)).toContain("/xbot/v1/api/orgs/org-1/campaigns/camp-1");
+    expect(init?.method).toBe("PATCH");
+    expect(JSON.parse(String(init?.body))).toEqual({ name: "Renamed" });
+    return jsonResponse({
+      id: "camp-1",
+      name: "Renamed",
+      updatedAt: "2026-01-02T00:00:00.000Z",
+    });
+  });
+  globalThis.fetch = fetchMock as typeof fetch;
+
+  const result = await campaignsApi.updateName("jwt-test", "org-1", "camp-1", "Renamed");
+  expect(result.name).toBe("Renamed");
+});
+
 test("campaignsApi.create POSTs campaign with bearer token", async () => {
   const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
     expect(String(input)).toContain("/xbot/v1/api/orgs/org-1/campaigns");
     expect(init?.method).toBe("POST");
     expect(JSON.parse(String(init?.body))).toEqual({
+      name: "Q1 outreach",
       targetUsernames: ["alice", "bob"],
       messageText: "Hello",
       dmsPerHour: 10,
     });
     return jsonResponse({
       id: "camp-1",
+      name: "Q1 outreach",
       status: "pending",
       totalTargets: 2,
       dmsPerHour: 10,
@@ -67,6 +110,7 @@ test("campaignsApi.create POSTs campaign with bearer token", async () => {
   globalThis.fetch = fetchMock as typeof fetch;
 
   const result = await campaignsApi.create("jwt-test", "org-1", {
+    name: "Q1 outreach",
     targetUsernames: ["alice", "bob"],
     messageText: "Hello",
     dmsPerHour: 10,
@@ -81,6 +125,7 @@ test("campaignsApi.getStatus GETs campaign status", async () => {
     return jsonResponse({
       id: "camp-1",
       orgId: "org-1",
+      name: "Q1 outreach",
       status: "running",
       messageText: "Hello",
       targetUsernames: ["alice"],

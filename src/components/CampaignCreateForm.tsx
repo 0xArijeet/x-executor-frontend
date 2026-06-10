@@ -1,5 +1,6 @@
 import { ErrorAlert, errorMessage } from "@/components/ErrorAlert";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -24,6 +25,7 @@ type CampaignCreateFormProps = {
 };
 
 export function CampaignCreateForm({ token, orgId, connections, onCreated }: CampaignCreateFormProps) {
+  const [name, setName] = useState("");
   const [targetsRaw, setTargetsRaw] = useState("");
   const [messageText, setMessageText] = useState("");
   const [dmsPerHour, setDmsPerHour] = useState<string>("15");
@@ -35,6 +37,7 @@ export function CampaignCreateForm({ token, orgId, connections, onCreated }: Cam
   const hasAuthToken = authTokenCount > 0;
   const selectedRate = Number.parseInt(dmsPerHour, 10);
   const canSubmit =
+    name.trim().length > 0 &&
     parsedTargets.length > 0 &&
     messageText.trim().length > 0 &&
     hasAuthToken &&
@@ -48,6 +51,7 @@ export function CampaignCreateForm({ token, orgId, connections, onCreated }: Cam
     setSubmitting(true);
     try {
       const result = await campaignsApi.create(token, orgId, {
+        name: name.trim(),
         targetUsernames: parsedTargets,
         messageText: messageText.trim(),
         dmsPerHour: selectedRate,
@@ -63,6 +67,17 @@ export function CampaignCreateForm({ token, orgId, connections, onCreated }: Cam
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <ErrorAlert error={error} />
+
+      <div className="space-y-2">
+        <Label htmlFor="campaignName">Campaign name</Label>
+        <Input
+          id="campaignName"
+          placeholder="Q1 outreach"
+          maxLength={100}
+          value={name}
+          onChange={e => setName(e.target.value)}
+        />
+      </div>
 
       <div className="space-y-2">
         <Label htmlFor="targets">Target usernames</Label>

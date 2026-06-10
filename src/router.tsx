@@ -4,6 +4,7 @@ import { RequireAuth } from "@/lib/auth/RequireAuth";
 import { RequireOrgRole } from "@/lib/auth/RequireOrgRole";
 import { CampaignCreatePage } from "@/pages/CampaignCreatePage";
 import { CampaignProgressPage } from "@/pages/CampaignProgressPage";
+import { CampaignsListPage } from "@/pages/CampaignsListPage";
 import { ChatDetailPage } from "@/pages/ChatDetailPage";
 import { ChatsListPage } from "@/pages/ChatsListPage";
 import { ConnectPage } from "@/pages/ConnectPage";
@@ -68,6 +69,14 @@ const router = createBrowserRouter([
         element: (
           <RequireOrgRole>
             <ChatDetailPage />
+          </RequireOrgRole>
+        ),
+      },
+      {
+        path: "orgs/:orgId/campaigns",
+        element: (
+          <RequireOrgRole adminOnly>
+            <CampaignsListPage />
           </RequireOrgRole>
         ),
       },

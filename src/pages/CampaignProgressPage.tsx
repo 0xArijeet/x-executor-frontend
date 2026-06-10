@@ -1,6 +1,8 @@
 import { ErrorAlert, errorMessage } from "@/components/ErrorAlert";
 import { CampaignStatusBadge } from "@/components/CampaignStatusBadge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { formatRelativeEta, isCampaignActive } from "@/lib/campaign-utils";
 import { isAdmin, useOrgRole } from "@/lib/auth/RequireOrgRole";
 import { useAuth } from "@/lib/auth/AuthContext";
@@ -26,12 +28,18 @@ export function CampaignProgressPage() {
   const [campaign, setCampaign] = useState<CampaignStatusResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [nameDraft, setNameDraft] = useState("");
+  const [savingName, setSavingName] = useState(false);
+  const [nameError, setNameError] = useState<string | null>(null);
 
   function load() {
     if (!token || !orgId || !campaignId) return;
     campaignsApi
       .getStatus(token, orgId, campaignId)
-      .then(setCampaign)
+      .then(result => {
+        setCampaign(result);
+        setNameDraft(result.name);
+      })
       .catch(err => setError(errorMessage(err)))
       .finally(() => setLoading(false));
   }
@@ -46,6 +54,25 @@ export function CampaignProgressPage() {
     return () => clearInterval(id);
   }, [campaign?.status, token, orgId, campaignId]);
 
+  async function handleSaveName() {
+    if (!token || !orgId || !campaignId || !admin) return;
+    const trimmed = nameDraft.trim();
+    if (!trimmed || trimmed === campaign?.name) return;
+    setNameError(null);
+    setSavingName(true);
+    try {
+      const result = await campaignsApi.updateName(token, orgId, campaignId, trimmed);
+      setCampaign(current =>
+        current ? { ...current, name: result.name, updatedAt: result.updatedAt } : current,
+      );
+      setNameDraft(result.name);
+    } catch (err) {
+      setNameError(errorMessage(err));
+    } finally {
+      setSavingName(false);
+    }
+  }
+
   if (loading) return <p className="text-muted-foreground">Loading campaign…</p>;
   if (!campaign) return <ErrorAlert error={error ?? "Campaign not found"} />;
 
@@ -56,11 +83,43 @@ export function CampaignProgressPage() {
     <div>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Campaign progress</h1>
+          <h1 className="text-2xl font-semibold">{campaign.name}</h1>
           <p className="text-muted-foreground font-mono text-xs mt-1">{campaign.id}</p>
         </div>
         <CampaignStatusBadge status={campaign.status} />
       </div>
+
+      {admin && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-lg">Campaign name</CardTitle>
+            <CardDescription>Rename this campaign at any time.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap items-end gap-3">
+            <div className="min-w-[16rem] flex-1 space-y-2">
+              <Input
+                value={nameDraft}
+                maxLength={100}
+                onChange={e => setNameDraft(e.target.value)}
+              />
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              disabled={
+                savingName ||
+                nameDraft.trim().length === 0 ||
+                nameDraft.trim() === campaign.name
+              }
+              onClick={handleSaveName}
+            >
+              {savingName ? "Saving…" : "Save name"}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      <ErrorAlert error={nameError} />
 
       <ErrorAlert error={error} />
 
@@ -128,6 +187,10 @@ export function CampaignProgressPage() {
       <p className="mt-6 text-sm text-muted-foreground">
         {admin && (
           <>
+            <Link to={`/orgs/${orgId}/campaigns`} className="text-primary underline">
+              All campaigns
+            </Link>
+            {" · "}
             <Link to={`/orgs/${orgId}/campaigns/new`} className="text-primary underline">
               New campaign
             </Link>

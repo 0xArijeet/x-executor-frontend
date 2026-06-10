@@ -14,6 +14,8 @@ import type {
   CreateCampaignInput,
   CreateCampaignResponse,
   CampaignStatusResponse,
+  CampaignSummary,
+  UpdateCampaignNameResponse,
   PaginatedConversationsResponse,
   PaginatedMessagesResponse,
 } from "./types";
@@ -117,11 +119,21 @@ export const connectionsApi = {
 };
 
 export const campaignsApi = {
+  list(token: string, orgId: string) {
+    return hubFetch<CampaignSummary[]>(`/orgs/${orgId}/campaigns`, { token });
+  },
   create(token: string, orgId: string, input: CreateCampaignInput) {
     return hubFetch<CreateCampaignResponse>(`/orgs/${orgId}/campaigns`, {
       method: "POST",
       token,
       body: JSON.stringify(input),
+    });
+  },
+  updateName(token: string, orgId: string, campaignId: string, name: string) {
+    return hubFetch<UpdateCampaignNameResponse>(`/orgs/${orgId}/campaigns/${campaignId}`, {
+      method: "PATCH",
+      token,
+      body: JSON.stringify({ name }),
     });
   },
   getStatus(token: string, orgId: string, campaignId: string) {

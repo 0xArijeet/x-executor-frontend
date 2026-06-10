@@ -51,6 +51,10 @@ export function CampaignCreatePage() {
       )}
 
       <p className="mt-6 text-sm text-muted-foreground">
+        <Link to={`/orgs/${orgId}/campaigns`} className="text-primary underline">
+          All campaigns
+        </Link>
+        {" · "}
         <Link to={`/orgs/${orgId}`} className="text-primary underline">
           Back to connections
         </Link>

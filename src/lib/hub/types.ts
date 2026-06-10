@@ -83,6 +83,7 @@ export type CreateOrgInput = {
 export type CampaignStatus = "pending" | "running" | "completed" | "failed";
 
 export type CreateCampaignInput = {
+  name: string;
   targetUsernames: string[];
   messageText: string;
   dmsPerHour?: number;
@@ -90,6 +91,7 @@ export type CreateCampaignInput = {
 
 export type CreateCampaignResponse = {
   id: string;
+  name: string;
   status: CampaignStatus;
   totalTargets: number;
   dmsPerHour: number;
@@ -98,9 +100,28 @@ export type CreateCampaignResponse = {
   createdAt: string;
 };
 
+export type CampaignSummary = {
+  id: string;
+  name: string;
+  status: CampaignStatus;
+  totalTargets: number;
+  messagesSent: number;
+  failedCount: number;
+  progressPercent: number;
+  createdAt: string;
+  completedAt?: string;
+};
+
+export type UpdateCampaignNameResponse = {
+  id: string;
+  name: string;
+  updatedAt: string;
+};
+
 export type CampaignStatusResponse = {
   id: string;
   orgId: string;
+  name: string;
   status: CampaignStatus;
   messageText: string;
   targetUsernames: string[];

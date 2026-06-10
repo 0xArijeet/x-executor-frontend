@@ -42,7 +42,7 @@ export function AppShell() {
                 </NavLink>
                 {admin && (
                   <NavLink
-                    to={`/orgs/${orgId}/campaigns/new`}
+                    to={`/orgs/${orgId}/campaigns`}
                     className={({ isActive }) =>
                       cn("text-muted-foreground hover:text-foreground", isActive && "text-foreground font-medium")
                     }

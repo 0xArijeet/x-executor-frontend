@@ -66,9 +66,14 @@ export function OrgDashboardPage() {
           </p>
         </div>
         {admin && orgId && (
-          <Button asChild variant="outline" size="sm">
-            <Link to={`/orgs/${orgId}/campaigns/new`}>New campaign</Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link to={`/orgs/${orgId}/campaigns`}>View campaigns</Link>
+            </Button>
+            <Button asChild size="sm">
+              <Link to={`/orgs/${orgId}/campaigns/new`}>New campaign</Link>
+            </Button>
+          </div>
         )}
       </div>
 
