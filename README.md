@@ -9,8 +9,8 @@ See also [CREATE_AND_INTEGRATE_FRONTEND.md](../x-executor/docs/CREATE_AND_INTEGR
 1. **Hub** + MongoDB + Redis (see [railway.md](../x-executor/docs/railway.md)).
 2. **X Developer App** with **OAuth 1.0a** (Consumer Keys), **Read, Write, and Direct Messages**, and **Account Activity API** access.
 3. Hub callback URL (exact match in X Developer Portal):
-   - Local: `http://localhost:3000/xbot/v1/api/oauth/x/callback`
-   - Production: `https://<hub-domain>/xbot/v1/api/oauth/x/callback`
+   - Local: `http://localhost:3000/xbot/v1/api/hub/oauth/x/callback`
+   - Production: `https://<hub-domain>/xbot/v1/api/hub/oauth/x/callback`
 
 ## Environment
 
@@ -31,7 +31,7 @@ HUB_PUBLIC_BASE_URL=http://localhost:3000
 WEBHOOK_PUBLIC_BASE_URL=http://localhost:3001
 X_API_KEY=...
 X_API_KEY_SECRET=...
-X_REDIRECT_URI=http://localhost:3000/xbot/v1/api/oauth/x/callback
+X_REDIRECT_URI=http://localhost:3000/xbot/v1/api/hub/oauth/x/callback
 X_REGISTER_WEBHOOKS_WITH_X=true
 ```
 
@@ -79,7 +79,7 @@ PIN and auth token are password fields — submit once to Hub, never stored in f
 
 1. Ensure at least one connection has **auth token** saved (`/orgs/:orgId`).
 2. **Campaigns** nav → enter target usernames (one per line) and message → **Launch campaign**.
-3. Progress page polls `GET /xbot/v1/api/orgs/:orgId/campaigns/:id/status` every 15s until complete.
+3. Progress page polls `GET /xbot/v1/api/hub/orgs/:orgId/campaigns/:id/status` every 15s until complete.
 
 Requires Hub `NATS_URL` plus background **Scheduler**, **Sender**, and **Analytics** services (see monorepo [railway.md](../x-executor/docs/railway.md)).
 
