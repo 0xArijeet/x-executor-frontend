@@ -19,8 +19,8 @@ Copy `.env.example` to `.env`:
 | Variable | Example | Purpose |
 |----------|---------|---------|
 | `PORT` | `5173` | Dev server (Hub uses 3000) |
-| `HUB_API_URL` | `http://localhost:3000` | Dev proxy: `/api/hub/*` → Hub `/xbot/v1/api/*` |
-| `PUBLIC_HUB_API_URL` | *(empty locally)* | Client API base; production = Hub URL (calls `/xbot/v1/api` on Hub) |
+| `HUB_API_URL` | `http://localhost:3000` | Dev proxy target for `/xbot/*` |
+| `PUBLIC_HUB_API_URL` | *(empty locally)* | Client API base; production = Hub URL |
 | `PUBLIC_HUB_PUBLIC_BASE_URL` | `http://localhost:3000` | OAuth start links (Hub origin) |
 
 **Hub** (`.env` in `x-executor`):

@@ -1,3 +1,7 @@
+import { HUB_API_PREFIX } from "./constants";
+
+export { HUB_API_PREFIX };
+
 export class HubApiError extends Error {
   constructor(
     message: string,
@@ -6,20 +10,6 @@ export class HubApiError extends Error {
     super(message);
     this.name = "HubApiError";
   }
-}
-
-import {
-  FRONTEND_HUB_API_PREFIX,
-  HUB_BACKEND_API_PREFIX,
-} from "./constants";
-
-export { FRONTEND_HUB_API_PREFIX, HUB_BACKEND_API_PREFIX };
-
-/** @deprecated use HUB_BACKEND_API_PREFIX */
-export const HUB_API_PREFIX = HUB_BACKEND_API_PREFIX;
-
-function hubApiPrefix(): string {
-  return apiBase() ? HUB_BACKEND_API_PREFIX : FRONTEND_HUB_API_PREFIX;
 }
 
 function apiBase(): string {
@@ -66,7 +56,7 @@ export function validateHubApiUrl(): string | null {
 }
 
 export function oauthStartUrl(inviteToken: string): string {
-  return `${hubPublicBaseUrl()}/${HUB_BACKEND_API_PREFIX}/oauth/x/start?invite=${encodeURIComponent(inviteToken)}`;
+  return `${hubPublicBaseUrl()}/${HUB_API_PREFIX}/oauth/x/start?invite=${encodeURIComponent(inviteToken)}`;
 }
 
 export async function hubFetch<T>(
@@ -74,7 +64,7 @@ export async function hubFetch<T>(
   options: RequestInit & { token?: string } = {},
 ): Promise<T> {
   const { token, headers, ...rest } = options;
-  const res = await fetch(`${apiBase()}/${hubApiPrefix()}${path}`, {
+  const res = await fetch(`${apiBase()}/${HUB_API_PREFIX}${path}`, {
     ...rest,
     headers: {
       "Content-Type": "application/json",
