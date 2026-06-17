@@ -17,6 +17,7 @@ import type {
   CreateCampaignResponse,
   CampaignStatusResponse,
   CampaignSummary,
+  CampaignControlResponse,
   UpdateCampaignNameResponse,
   PaginatedConversationsResponse,
   PaginatedMessagesResponse,
@@ -59,6 +60,18 @@ export const orgsApi = {
       method: "PATCH",
       token,
       body: JSON.stringify(input),
+    });
+  },
+  publishPrompt(token: string, orgId: string) {
+    return hubFetch<Organization>(`/orgs/${orgId}/prompt/publish`, {
+      method: "POST",
+      token,
+    });
+  },
+  discardDraft(token: string, orgId: string) {
+    return hubFetch<Organization>(`/orgs/${orgId}/prompt/discard`, {
+      method: "POST",
+      token,
     });
   },
   members(token: string, orgId: string) {
@@ -147,6 +160,24 @@ export const campaignsApi = {
   },
   getStatus(token: string, orgId: string, campaignId: string) {
     return hubFetch<CampaignStatusResponse>(`/orgs/${orgId}/campaigns/${campaignId}/status`, {
+      token,
+    });
+  },
+  pause(token: string, orgId: string, campaignId: string) {
+    return hubFetch<CampaignControlResponse>(`/orgs/${orgId}/campaigns/${campaignId}/pause`, {
+      method: "POST",
+      token,
+    });
+  },
+  resume(token: string, orgId: string, campaignId: string) {
+    return hubFetch<CampaignControlResponse>(`/orgs/${orgId}/campaigns/${campaignId}/resume`, {
+      method: "POST",
+      token,
+    });
+  },
+  stop(token: string, orgId: string, campaignId: string) {
+    return hubFetch<CampaignControlResponse>(`/orgs/${orgId}/campaigns/${campaignId}/stop`, {
+      method: "POST",
       token,
     });
   },

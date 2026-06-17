@@ -16,6 +16,9 @@ export type Organization = {
   name: string;
   slug?: string;
   systemPrompt?: string;
+  draftSystemPrompt?: string;
+  hasUnpublishedDraft?: boolean;
+  promptPublishedAt?: string;
   createdBy: string;
   createdAt?: string;
 };
@@ -88,7 +91,13 @@ export type CreateOrgInput = {
   slug?: string;
 };
 
-export type CampaignStatus = "pending" | "running" | "completed" | "failed";
+export type CampaignStatus =
+  | "pending"
+  | "running"
+  | "paused"
+  | "stopped"
+  | "completed"
+  | "failed";
 
 export type CreateCampaignInput = {
   name: string;
@@ -139,12 +148,23 @@ export type CampaignStatusResponse = {
   messagesSent: number;
   repliesReceived: number;
   failedCount: number;
+  cancelledCount: number;
   remaining: number;
   progressPercent: number;
   startedAt?: string;
   expectedEndAt?: string;
   completedAt?: string;
+  stoppedAt?: string;
   createdAt: string;
+  updatedAt: string;
+};
+
+export type CampaignControlResponse = {
+  id: string;
+  status: CampaignStatus;
+  cancelledCount: number;
+  completedAt?: string;
+  stoppedAt?: string;
   updatedAt: string;
 };
 

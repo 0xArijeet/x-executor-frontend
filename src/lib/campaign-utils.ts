@@ -20,5 +20,5 @@ export function formatRelativeEta(expectedEndAt: string | undefined): string | n
 }
 
 export function isCampaignActive(status: string): boolean {
-  return status === "pending" || status === "running";
+  return status === "pending" || status === "running" || status === "paused";
 }

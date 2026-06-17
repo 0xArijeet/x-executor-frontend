@@ -31,6 +31,8 @@ export function CampaignProgressPage() {
   const [nameDraft, setNameDraft] = useState("");
   const [savingName, setSavingName] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
+  const [controlError, setControlError] = useState<string | null>(null);
+  const [controlling, setControlling] = useState(false);
 
   function load() {
     if (!token || !orgId || !campaignId) return;
@@ -73,11 +75,56 @@ export function CampaignProgressPage() {
     }
   }
 
+  async function handleControl(action: "pause" | "resume" | "stop") {
+    if (!token || !orgId || !campaignId || !admin || !campaign) return;
+
+    if (action === "stop") {
+      const confirmed = confirm(
+        "Stop this campaign? Pending messages will be cancelled. Messages already in flight may still send.",
+      );
+      if (!confirmed) return;
+    }
+
+    setControlError(null);
+    setControlling(true);
+    try {
+      const result =
+        action === "pause"
+          ? await campaignsApi.pause(token, orgId, campaignId)
+          : action === "resume"
+            ? await campaignsApi.resume(token, orgId, campaignId)
+            : await campaignsApi.stop(token, orgId, campaignId);
+
+      setCampaign(current =>
+        current
+          ? {
+              ...current,
+              status: result.status,
+              cancelledCount: result.cancelledCount,
+              completedAt: result.completedAt ?? current.completedAt,
+              stoppedAt: result.stoppedAt,
+              updatedAt: result.updatedAt,
+              remaining: action === "stop" ? 0 : current.remaining,
+            }
+          : current,
+      );
+      load();
+    } catch (err) {
+      setControlError(errorMessage(err));
+    } finally {
+      setControlling(false);
+    }
+  }
+
   if (loading) return <p className="text-muted-foreground">Loading campaign…</p>;
   if (!campaign) return <ErrorAlert error={error ?? "Campaign not found"} />;
 
   const eta = formatRelativeEta(campaign.expectedEndAt);
-  const processed = campaign.messagesSent + campaign.failedCount;
+  const processed =
+    campaign.messagesSent + campaign.failedCount + (campaign.cancelledCount ?? 0);
+  const canPause = campaign.status === "running";
+  const canResume = campaign.status === "paused";
+  const canStop = ["pending", "running", "paused"].includes(campaign.status);
 
   return (
     <div>
@@ -121,7 +168,54 @@ export function CampaignProgressPage() {
 
       <ErrorAlert error={nameError} />
 
+      <ErrorAlert error={controlError} />
+
       <ErrorAlert error={error} />
+
+      {admin && (canPause || canResume || canStop) && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-lg">Campaign controls</CardTitle>
+            <CardDescription>
+              Pause to hold new sends, resume to continue, or stop to cancel remaining messages.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            {canPause && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={controlling}
+                onClick={() => handleControl("pause")}
+              >
+                {controlling ? "Working…" : "Pause"}
+              </Button>
+            )}
+            {canResume && (
+              <Button
+                type="button"
+                size="sm"
+                disabled={controlling}
+                onClick={() => handleControl("resume")}
+              >
+                {controlling ? "Working…" : "Resume"}
+              </Button>
+            )}
+            {canStop && (
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                disabled={controlling}
+                onClick={() => handleControl("stop")}
+              >
+                {controlling ? "Working…" : "Stop"}
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {campaign.status === "failed" && (
         <Card className="mb-6 border-destructive/40">
@@ -149,9 +243,10 @@ export function CampaignProgressPage() {
               style={{ width: `${Math.min(campaign.progressPercent, 100)}%` }}
             />
           </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
             <StatBlock label="Sent" value={campaign.messagesSent} />
             <StatBlock label="Failed" value={campaign.failedCount} />
+            <StatBlock label="Cancelled" value={campaign.cancelledCount ?? 0} />
             <StatBlock label="Replies" value={campaign.repliesReceived} />
             <StatBlock label="Remaining" value={campaign.remaining} />
           </div>
@@ -160,7 +255,12 @@ export function CampaignProgressPage() {
               Estimated finish: {new Date(campaign.expectedEndAt).toLocaleString()}
             </p>
           )}
-          {campaign.completedAt && (
+          {campaign.stoppedAt && (
+            <p className="text-xs text-muted-foreground">
+              Stopped: {new Date(campaign.stoppedAt).toLocaleString()}
+            </p>
+          )}
+          {campaign.completedAt && campaign.status !== "stopped" && (
             <p className="text-xs text-muted-foreground">
               Completed: {new Date(campaign.completedAt).toLocaleString()}
             </p>

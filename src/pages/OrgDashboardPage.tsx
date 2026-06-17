@@ -82,8 +82,8 @@ export function OrgDashboardPage() {
       {admin && promptMissing && (
         <Card className="mb-6 border-amber-500/40">
           <CardContent className="py-4 text-sm text-muted-foreground">
-            <strong className="text-foreground">System prompt not set.</strong> The processor skips automated DM
-            replies until an admin saves a prompt below.
+            <strong className="text-foreground">System prompt not published.</strong> Save a draft,
+            test it, then publish before automated DM replies will run.
           </CardContent>
         </Card>
       )}
@@ -94,7 +94,9 @@ export function OrgDashboardPage() {
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
                 <CardTitle className="text-lg">Automation prompts</CardTitle>
-                <CardDescription>LLM instructions for inbound DM replies.</CardDescription>
+                <CardDescription>
+                  Draft, test, and publish LLM instructions for inbound DM replies.
+                </CardDescription>
               </div>
               {promptMissing && <Badge variant="destructive">Required for replies</Badge>}
             </div>
@@ -103,8 +105,11 @@ export function OrgDashboardPage() {
             <OrgPromptForm
               token={token}
               orgId={orgId}
-              initialSystemPrompt={org?.systemPrompt ?? ""}
-              onSaved={setOrg}
+              publishedPrompt={org?.systemPrompt ?? ""}
+              initialDraft={org?.draftSystemPrompt ?? org?.systemPrompt ?? ""}
+              hasUnpublishedDraft={org?.hasUnpublishedDraft}
+              promptPublishedAt={org?.promptPublishedAt}
+              onUpdated={setOrg}
               compact
             />
             <p className="mt-4 text-xs text-muted-foreground">

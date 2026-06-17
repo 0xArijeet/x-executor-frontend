@@ -146,6 +146,60 @@ test("campaignsApi.getStatus GETs campaign status", async () => {
   expect(result.status).toBe("running");
 });
 
+test("campaignsApi.pause POSTs campaign pause", async () => {
+  const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
+    expect(String(input)).toContain("/xbot/v1/api/hub/orgs/org-1/campaigns/camp-1/pause");
+    expect(init?.method).toBe("POST");
+    return jsonResponse({
+      id: "camp-1",
+      status: "paused",
+      cancelledCount: 0,
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    });
+  });
+  globalThis.fetch = fetchMock as typeof fetch;
+
+  const result = await campaignsApi.pause("jwt-test", "org-1", "camp-1");
+  expect(result.status).toBe("paused");
+});
+
+test("campaignsApi.resume POSTs campaign resume", async () => {
+  const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
+    expect(String(input)).toContain("/xbot/v1/api/hub/orgs/org-1/campaigns/camp-1/resume");
+    expect(init?.method).toBe("POST");
+    return jsonResponse({
+      id: "camp-1",
+      status: "running",
+      cancelledCount: 0,
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    });
+  });
+  globalThis.fetch = fetchMock as typeof fetch;
+
+  const result = await campaignsApi.resume("jwt-test", "org-1", "camp-1");
+  expect(result.status).toBe("running");
+});
+
+test("campaignsApi.stop POSTs campaign stop", async () => {
+  const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
+    expect(String(input)).toContain("/xbot/v1/api/hub/orgs/org-1/campaigns/camp-1/stop");
+    expect(init?.method).toBe("POST");
+    return jsonResponse({
+      id: "camp-1",
+      status: "stopped",
+      cancelledCount: 5,
+      completedAt: "2026-01-01T00:00:00.000Z",
+      stoppedAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    });
+  });
+  globalThis.fetch = fetchMock as typeof fetch;
+
+  const result = await campaignsApi.stop("jwt-test", "org-1", "camp-1");
+  expect(result.status).toBe("stopped");
+  expect(result.cancelledCount).toBe(5);
+});
+
 test("chatsApi.listConversations GETs org chats with pagination", async () => {
   const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
     expect(String(input)).toContain("/xbot/v1/api/hub/orgs/org-1/chats?page=1&limit=20");
@@ -236,4 +290,42 @@ test("orgsApi.testChat POSTs chat test with bearer token", async () => {
     reply: "Noah supports Solana and Irys.",
     isKnownAnswer: true,
   });
+});
+
+test("orgsApi.publishPrompt POSTs prompt publish", async () => {
+  const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
+    expect(String(input)).toContain("/xbot/v1/api/hub/orgs/org-1/prompt/publish");
+    expect(init?.method).toBe("POST");
+    return jsonResponse({
+      id: "org-1",
+      name: "Acme",
+      systemPrompt: "Published prompt",
+      draftSystemPrompt: "Published prompt",
+      hasUnpublishedDraft: false,
+      createdBy: "user-1",
+    });
+  });
+  globalThis.fetch = fetchMock as typeof fetch;
+
+  const result = await orgsApi.publishPrompt("jwt-test", "org-1");
+  expect(result.hasUnpublishedDraft).toBe(false);
+  expect(result.systemPrompt).toBe("Published prompt");
+});
+
+test("orgsApi.discardDraft POSTs prompt discard", async () => {
+  const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
+    expect(String(input)).toContain("/xbot/v1/api/hub/orgs/org-1/prompt/discard");
+    expect(init?.method).toBe("POST");
+    return jsonResponse({
+      id: "org-1",
+      name: "Acme",
+      systemPrompt: "Published prompt",
+      draftSystemPrompt: "Published prompt",
+      hasUnpublishedDraft: false,
+      createdBy: "user-1",
+    });
+  });
+  globalThis.fetch = fetchMock as typeof fetch;
+
+  await orgsApi.discardDraft("jwt-test", "org-1");
 });

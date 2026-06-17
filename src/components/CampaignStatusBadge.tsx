@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 const labels: Record<CampaignStatus, string> = {
   pending: "Pending",
   running: "Running",
+  paused: "Paused",
+  stopped: "Stopped",
   completed: "Completed",
   failed: "Failed",
 };
@@ -12,6 +14,8 @@ const labels: Record<CampaignStatus, string> = {
 const variants: Record<CampaignStatus, "secondary" | "default" | "outline" | "destructive"> = {
   pending: "secondary",
   running: "default",
+  paused: "secondary",
+  stopped: "outline",
   completed: "outline",
   failed: "destructive",
 };

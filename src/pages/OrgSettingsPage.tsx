@@ -41,15 +41,18 @@ export function OrgSettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Organization prompts</CardTitle>
-          <CardDescription>System prompt for DM automation.</CardDescription>
+          <CardDescription>Draft, test, and publish the system prompt for DM automation.</CardDescription>
         </CardHeader>
         <CardContent>
           {token && orgId && (
             <OrgPromptForm
               token={token}
               orgId={orgId}
-              initialSystemPrompt={org?.systemPrompt ?? ""}
-              onSaved={setOrg}
+              publishedPrompt={org?.systemPrompt ?? ""}
+              initialDraft={org?.draftSystemPrompt ?? org?.systemPrompt ?? ""}
+              hasUnpublishedDraft={org?.hasUnpublishedDraft}
+              promptPublishedAt={org?.promptPublishedAt}
+              onUpdated={setOrg}
             />
           )}
         </CardContent>

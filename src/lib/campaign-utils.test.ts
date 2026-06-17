@@ -5,9 +5,11 @@ test("parseTargetUsernames deduplicates and normalizes", () => {
   expect(parseTargetUsernames("@Alice\nbob, Alice\n  ")).toEqual(["alice", "bob"]);
 });
 
-test("isCampaignActive for pending and running", () => {
+test("isCampaignActive for pending, running, and paused", () => {
   expect(isCampaignActive("pending")).toBe(true);
   expect(isCampaignActive("running")).toBe(true);
+  expect(isCampaignActive("paused")).toBe(true);
+  expect(isCampaignActive("stopped")).toBe(false);
   expect(isCampaignActive("completed")).toBe(false);
 });
 
