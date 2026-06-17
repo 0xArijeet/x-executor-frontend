@@ -6,8 +6,8 @@ import { Input } from "@/components/ui/input";
 import { formatRelativeEta, isCampaignActive } from "@/lib/campaign-utils";
 import { isAdmin, useOrgRole } from "@/lib/auth/RequireOrgRole";
 import { useAuth } from "@/lib/auth/AuthContext";
-import { campaignsApi } from "@/lib/hub/api";
-import type { CampaignStatusResponse } from "@/lib/hub/types";
+import { campaignsApi, connectionsApi } from "@/lib/hub/api";
+import type { CampaignStatusResponse, Connection } from "@/lib/hub/types";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
@@ -26,6 +26,7 @@ export function CampaignProgressPage() {
   const role = useOrgRole(orgId);
   const admin = isAdmin(role);
   const [campaign, setCampaign] = useState<CampaignStatusResponse | null>(null);
+  const [connections, setConnections] = useState<Connection[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [nameDraft, setNameDraft] = useState("");
@@ -45,6 +46,14 @@ export function CampaignProgressPage() {
       .catch(err => setError(errorMessage(err)))
       .finally(() => setLoading(false));
   }
+
+  useEffect(() => {
+    if (!token || !orgId) return;
+    connectionsApi
+      .list(token, orgId)
+      .then(setConnections)
+      .catch(() => setConnections([]));
+  }, [token, orgId]);
 
   useEffect(() => {
     load();
@@ -122,6 +131,17 @@ export function CampaignProgressPage() {
   const eta = formatRelativeEta(campaign.expectedEndAt);
   const processed =
     campaign.messagesSent + campaign.failedCount + (campaign.cancelledCount ?? 0);
+  const senderUsernames =
+    campaign.connectionIds
+      ?.map(connectionId => connections.find(c => c.id === connectionId)?.xUsername)
+      .filter((username): username is string => !!username)
+      .map(username => `@${username}`) ?? [];
+  const senderSummary =
+    senderUsernames.length > 0
+      ? senderUsernames.join(", ")
+      : campaign.accountsToUse
+        ? `${campaign.accountsToUse} account(s)`
+        : null;
   const canPause = campaign.status === "running";
   const canResume = campaign.status === "paused";
   const canStop = ["pending", "running", "paused"].includes(campaign.status);
@@ -233,9 +253,7 @@ export function CampaignProgressPage() {
           <CardTitle className="text-lg">Delivery</CardTitle>
           <CardDescription>
             {processed} of {campaign.totalTargets} processed
-            {campaign.accountsToUse
-              ? ` · sending from ${campaign.accountsToUse} account(s)`
-              : ""}
+            {senderSummary ? ` · sending from ${senderSummary}` : ""}
             {eta && isCampaignActive(campaign.status) ? ` · ${eta}` : ""}
           </CardDescription>
         </CardHeader>

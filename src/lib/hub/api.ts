@@ -10,6 +10,7 @@ import type {
   Organization,
   OrganizationWithRole,
   UpdatePromptInput,
+  UpdateHandoffInput,
   ChatTestInput,
   ChatTestResponse,
   LlmModelOption,
@@ -87,6 +88,13 @@ export const orgsApi = {
   },
   listLlmModels(token: string, orgId: string) {
     return hubFetch<LlmModelOption[]>(`/orgs/${orgId}/llm/models`, { token });
+  },
+  updateHandoff(token: string, orgId: string, input: UpdateHandoffInput) {
+    return hubFetch<Organization>(`/orgs/${orgId}/handoff`, {
+      method: "PATCH",
+      token,
+      body: JSON.stringify(input),
+    });
   },
 };
 

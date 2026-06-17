@@ -95,7 +95,7 @@ test("campaignsApi.create POSTs campaign with bearer token", async () => {
       targetUsernames: ["alice", "bob"],
       messageText: "Hello",
       dmsPerHour: 10,
-      accountsToUse: 2,
+      connectionIds: ["conn-a", "conn-b"],
     });
     return jsonResponse({
       id: "camp-1",
@@ -103,6 +103,7 @@ test("campaignsApi.create POSTs campaign with bearer token", async () => {
       status: "pending",
       totalTargets: 2,
       dmsPerHour: 10,
+      connectionIds: ["conn-a", "conn-b"],
       accountsToUse: 2,
       messageText: "Hello",
       targetUsernames: ["alice", "bob"],
@@ -116,7 +117,7 @@ test("campaignsApi.create POSTs campaign with bearer token", async () => {
     targetUsernames: ["alice", "bob"],
     messageText: "Hello",
     dmsPerHour: 10,
-    accountsToUse: 2,
+    connectionIds: ["conn-a", "conn-b"],
   });
   expect(result.id).toBe("camp-1");
 });
@@ -348,4 +349,33 @@ test("orgsApi.listLlmModels GETs OpenRouter model catalog", async () => {
 
   const result = await orgsApi.listLlmModels("jwt-test", "org-1");
   expect(result[0]?.id).toBe("google/gemini-3.5-flash");
+});
+
+test("orgsApi.updateHandoff PATCHes handoff settings", async () => {
+  const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
+    expect(String(input)).toContain("/xbot/v1/api/hub/orgs/org-1/handoff");
+    expect(init?.method).toBe("PATCH");
+    expect(JSON.parse(String(init?.body))).toEqual({
+      handoffEnabled: true,
+      handoffConfig: "Notify @john for investments",
+      handoffMessage: "Someone will reply soon.",
+    });
+    return jsonResponse({
+      id: "org-1",
+      name: "Acme",
+      handoffEnabled: true,
+      handoffConfig: "Notify @john for investments",
+      handoffMessage: "Someone will reply soon.",
+      createdBy: "user-1",
+    });
+  });
+  globalThis.fetch = fetchMock as typeof fetch;
+
+  const result = await orgsApi.updateHandoff("jwt-test", "org-1", {
+    handoffEnabled: true,
+    handoffConfig: "Notify @john for investments",
+    handoffMessage: "Someone will reply soon.",
+  });
+  expect(result.handoffEnabled).toBe(true);
+  expect(result.handoffConfig).toBe("Notify @john for investments");
 });

@@ -21,6 +21,9 @@ export type Organization = {
   promptPublishedAt?: string;
   llmModel?: string;
   draftLlmModel?: string;
+  handoffEnabled?: boolean;
+  handoffConfig?: string;
+  handoffMessage?: string;
   createdBy: string;
   createdAt?: string;
 };
@@ -79,6 +82,12 @@ export type UpdatePromptInput = {
   llmModel?: string;
 };
 
+export type UpdateHandoffInput = {
+  handoffEnabled: boolean;
+  handoffConfig?: string;
+  handoffMessage?: string;
+};
+
 export type LlmModelOption = {
   id: string;
   name: string;
@@ -116,6 +125,7 @@ export type CreateCampaignInput = {
   messageText: string;
   dmsPerHour?: number;
   accountsToUse?: number;
+  connectionIds?: string[];
 };
 
 export type CreateCampaignResponse = {
@@ -125,6 +135,7 @@ export type CreateCampaignResponse = {
   totalTargets: number;
   dmsPerHour: number;
   accountsToUse?: number;
+  connectionIds?: string[];
   messageText: string;
   targetUsernames: string[];
   createdAt: string;
@@ -158,6 +169,7 @@ export type CampaignStatusResponse = {
   totalTargets: number;
   dmsPerHour: number;
   accountsToUse?: number;
+  connectionIds?: string[];
   messagesScheduled: number;
   messagesSent: number;
   repliesReceived: number;

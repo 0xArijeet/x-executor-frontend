@@ -1,4 +1,5 @@
 import { OrgPromptForm } from "@/components/OrgPromptForm";
+import { OrgHandoffForm } from "@/components/OrgHandoffForm";
 import { ErrorAlert, errorMessage } from "@/components/ErrorAlert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/lib/auth/AuthContext";
@@ -56,6 +57,28 @@ export function OrgSettingsPage() {
               initialDraftModel={org?.draftLlmModel ?? org?.llmModel}
               hasUnpublishedDraft={org?.hasUnpublishedDraft}
               promptPublishedAt={org?.promptPublishedAt}
+              onUpdated={setOrg}
+            />
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Bot-to-agent handoff</CardTitle>
+          <CardDescription>
+            Classify inbound DMs with the LLM and notify a team member on X when a human should take
+            over. Changes take effect immediately.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {token && orgId && (
+            <OrgHandoffForm
+              token={token}
+              orgId={orgId}
+              handoffEnabled={org?.handoffEnabled}
+              handoffConfig={org?.handoffConfig}
+              handoffMessage={org?.handoffMessage}
               onUpdated={setOrg}
             />
           )}

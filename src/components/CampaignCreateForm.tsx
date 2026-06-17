@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { parseTargetUsernames } from "@/lib/campaign-utils";
 import { campaignsApi } from "@/lib/hub/api";
 import type { Connection } from "@/lib/hub/types";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 
 const DMS_PER_HOUR_OPTIONS = [5, 10, 15, 20, 25, 30] as const;
 
@@ -29,7 +29,7 @@ export function CampaignCreateForm({ token, orgId, connections, onCreated }: Cam
   const [targetsRaw, setTargetsRaw] = useState("");
   const [messageText, setMessageText] = useState("");
   const [dmsPerHour, setDmsPerHour] = useState<string>("15");
-  const [accountsToUse, setAccountsToUse] = useState<string>("");
+  const [selectedConnectionIds, setSelectedConnectionIds] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,20 +38,36 @@ export function CampaignCreateForm({ token, orgId, connections, onCreated }: Cam
   const authTokenCount = eligibleConnections.length;
   const hasAuthToken = authTokenCount > 0;
   const selectedRate = Number.parseInt(dmsPerHour, 10);
-  const selectedAccountCount = Number.parseInt(
-    accountsToUse || String(authTokenCount),
-    10,
-  );
+  const selectedAccountCount = selectedConnectionIds.length;
   const canSubmit =
     name.trim().length > 0 &&
     parsedTargets.length > 0 &&
     messageText.trim().length > 0 &&
     hasAuthToken &&
+    selectedAccountCount > 0 &&
     !submitting &&
-    Number.isFinite(selectedRate) &&
-    Number.isFinite(selectedAccountCount) &&
-    selectedAccountCount >= 1 &&
-    selectedAccountCount <= authTokenCount;
+    Number.isFinite(selectedRate);
+
+  useEffect(() => {
+    setSelectedConnectionIds(eligibleConnections.map(connection => connection.id));
+  }, [connections]);
+
+  function toggleConnection(connectionId: string, checked: boolean) {
+    setSelectedConnectionIds(current => {
+      if (checked) {
+        return current.includes(connectionId) ? current : [...current, connectionId];
+      }
+      return current.filter(id => id !== connectionId);
+    });
+  }
+
+  function selectAllAccounts() {
+    setSelectedConnectionIds(eligibleConnections.map(connection => connection.id));
+  }
+
+  function clearAllAccounts() {
+    setSelectedConnectionIds([]);
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -64,7 +80,7 @@ export function CampaignCreateForm({ token, orgId, connections, onCreated }: Cam
         targetUsernames: parsedTargets,
         messageText: messageText.trim(),
         dmsPerHour: selectedRate,
-        accountsToUse: selectedAccountCount,
+        connectionIds: selectedConnectionIds,
       });
       onCreated(result.id);
     } catch (err) {
@@ -118,37 +134,65 @@ export function CampaignCreateForm({ token, orgId, connections, onCreated }: Cam
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="accountsToUse">Accounts to use</Label>
-        <Select
-          value={accountsToUse || String(authTokenCount)}
-          onValueChange={setAccountsToUse}
-          disabled={!hasAuthToken}
-        >
-          <SelectTrigger id="accountsToUse" className="max-w-xs">
-            <SelectValue placeholder="Select account count" />
-          </SelectTrigger>
-          <SelectContent>
-            {Array.from({ length: authTokenCount }, (_, index) => index + 1).map(
-              count => (
-                <SelectItem key={count} value={String(count)}>
-                  {count === authTokenCount
-                    ? `All ${count} account(s)`
-                    : `${count} account${count === 1 ? "" : "s"}`}
-                </SelectItem>
-              ),
-            )}
-          </SelectContent>
-        </Select>
-        <p className="text-xs text-muted-foreground">
-          {hasAuthToken ? (
-            <>
-              Eligible senders:{" "}
-              {eligibleConnections.map(c => `@${c.xUsername}`).join(", ")}. The
-              least-loaded accounts are chosen at launch.
-            </>
-          ) : (
-            "Connect at least one account with an auth token before launching."
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Label>Sender accounts</Label>
+          {hasAuthToken && (
+            <div className="flex gap-2 text-xs">
+              <button
+                type="button"
+                className="text-primary underline"
+                onClick={selectAllAccounts}
+              >
+                Select all
+              </button>
+              <button
+                type="button"
+                className="text-primary underline"
+                onClick={clearAllAccounts}
+              >
+                Clear
+              </button>
+            </div>
           )}
+        </div>
+        {!hasAuthToken ? (
+          <p className="text-xs text-muted-foreground">
+            Connect at least one account with an auth token before launching.
+          </p>
+        ) : (
+          <div className="space-y-2 rounded-lg border border-border p-3">
+            {eligibleConnections.map(connection => {
+              const checked = selectedConnectionIds.includes(connection.id);
+              return (
+                <label
+                  key={connection.id}
+                  htmlFor={`connection-${connection.id}`}
+                  className="flex cursor-pointer items-center gap-3 text-sm"
+                >
+                  <input
+                    id={`connection-${connection.id}`}
+                    type="checkbox"
+                    checked={checked}
+                    onChange={e => toggleConnection(connection.id, e.target.checked)}
+                    className="h-4 w-4 rounded border-border"
+                  />
+                  <span>
+                    @{connection.xUsername}
+                    {!connection.hasXchatPin && (
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        (no XChat PIN)
+                      </span>
+                    )}
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        )}
+        <p className="text-xs text-muted-foreground">
+          {hasAuthToken
+            ? `${selectedAccountCount} of ${authTokenCount} eligible account(s) selected. Messages are distributed across the selected accounts.`
+            : "Only accounts with an auth token can send campaign DMs."}
         </p>
       </div>
 
