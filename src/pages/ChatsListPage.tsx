@@ -30,18 +30,18 @@ export function ChatsListPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!token || !orgId) return;
+    if (!token) return;
     setLoading(true);
     setError(null);
     chatsApi
-      .listConversations(token, orgId, page, limit)
+      .listConversations(token, page, limit)
       .then(result => {
         setConversations(result.data);
         setTotal(result.total);
       })
       .catch(err => setError(errorMessage(err)))
       .finally(() => setLoading(false));
-  }, [token, orgId, page, limit]);
+  }, [token, page, limit]);
 
   const totalPages = Math.max(1, Math.ceil(total / limit));
 

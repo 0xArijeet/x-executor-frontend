@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { orgsApi } from "@/lib/hub/api";
+import { xSettingsApi } from "@/lib/hub/api";
 import type { LlmModelOption, Organization } from "@/lib/hub/types";
 import { OrgPromptChatTest } from "@/components/OrgPromptChatTest";
 import { useEffect, useState, type FormEvent } from "react";
@@ -19,7 +19,6 @@ export const DEFAULT_LLM_MODEL = "google/gemini-3.5-flash";
 
 type OrgPromptFormProps = {
   token: string;
-  orgId: string;
   publishedPrompt?: string;
   initialDraft?: string;
   publishedModel?: string;
@@ -32,7 +31,6 @@ type OrgPromptFormProps = {
 
 export function OrgPromptForm({
   token,
-  orgId,
   publishedPrompt = "",
   initialDraft = "",
   publishedModel = DEFAULT_LLM_MODEL,
@@ -81,8 +79,8 @@ export function OrgPromptForm({
     let cancelled = false;
     setLoadingModels(true);
     setModelsError(null);
-    orgsApi
-      .listLlmModels(token, orgId)
+    xSettingsApi
+      .listLlmModels(token)
       .then(result => {
         if (!cancelled) {
           setModels(result);
@@ -101,7 +99,7 @@ export function OrgPromptForm({
     return () => {
       cancelled = true;
     };
-  }, [token, orgId]);
+  }, [token]);
 
   function applyOrgUpdate(org: Organization) {
     const nextDraft = org.draftSystemPrompt ?? org.systemPrompt ?? "";
@@ -143,7 +141,7 @@ export function OrgPromptForm({
     setSuccess(null);
     setSaving(true);
     try {
-      const updated = await orgsApi.updatePrompt(token, orgId, {
+      const updated = await xSettingsApi.updatePrompt(token, {
         systemPrompt: draftText,
         llmModel: draftModel,
       });
@@ -161,7 +159,7 @@ export function OrgPromptForm({
     setSuccess(null);
     setPublishing(true);
     try {
-      const updated = await orgsApi.publishPrompt(token, orgId);
+      const updated = await xSettingsApi.publishPrompt(token);
       applyOrgUpdate(updated);
       setSuccess("Prompt and model published to production.");
     } catch (err) {
@@ -176,7 +174,7 @@ export function OrgPromptForm({
     setSuccess(null);
     setDiscarding(true);
     try {
-      const updated = await orgsApi.discardDraft(token, orgId);
+      const updated = await xSettingsApi.discardDraft(token);
       applyOrgUpdate(updated);
       setSuccess("Draft reverted to published version.");
     } catch (err) {
@@ -275,7 +273,6 @@ export function OrgPromptForm({
 
       <OrgPromptChatTest
         token={token}
-        orgId={orgId}
         systemPrompt={draftText}
         llmModel={draftModel}
       />

@@ -2,6 +2,7 @@
 
 interface ImportMetaEnv {
   readonly PUBLIC_HUB_API_URL?: string;
+  readonly PUBLIC_API_BASE?: string;
   readonly PUBLIC_HUB_PUBLIC_BASE_URL?: string;
 }
 

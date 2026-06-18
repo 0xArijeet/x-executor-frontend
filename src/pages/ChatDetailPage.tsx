@@ -65,11 +65,11 @@ export function ChatDetailPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!token || !orgId || !conversationId) return;
+    if (!token || !conversationId) return;
     setLoading(true);
     setError(null);
     chatsApi
-      .getMessages(token, orgId, conversationId, page, limit)
+      .getMessages(token, conversationId, page, limit)
       .then(result => {
         if (!initialJumpDone && result.total > limit) {
           setInitialJumpDone(true);
@@ -81,7 +81,7 @@ export function ChatDetailPage() {
       })
       .catch(err => setError(errorMessage(err)))
       .finally(() => setLoading(false));
-  }, [token, orgId, conversationId, page, limit, initialJumpDone]);
+  }, [token, conversationId, page, limit, initialJumpDone]);
 
   const totalPages = Math.max(1, Math.ceil(total / limit));
 

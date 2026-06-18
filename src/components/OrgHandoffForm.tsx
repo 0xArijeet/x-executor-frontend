@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { orgsApi } from "@/lib/hub/api";
+import { xSettingsApi } from "@/lib/hub/api";
 import type { Organization } from "@/lib/hub/types";
 import { useEffect, useState, type FormEvent } from "react";
 
@@ -12,7 +12,6 @@ export const DEFAULT_HANDOFF_MESSAGE =
 
 type OrgHandoffFormProps = {
   token: string;
-  orgId: string;
   handoffEnabled?: boolean;
   handoffConfig?: string;
   handoffMessage?: string;
@@ -21,7 +20,6 @@ type OrgHandoffFormProps = {
 
 export function OrgHandoffForm({
   token,
-  orgId,
   handoffEnabled = false,
   handoffConfig = "",
   handoffMessage = "",
@@ -46,7 +44,7 @@ export function OrgHandoffForm({
     setSuccess(null);
     setSaving(true);
     try {
-      const updated = await orgsApi.updateHandoff(token, orgId, {
+      const updated = await xSettingsApi.updateHandoff(token, {
         handoffEnabled: enabled,
         handoffConfig: config.trim() || undefined,
         handoffMessage: message.trim() || undefined,

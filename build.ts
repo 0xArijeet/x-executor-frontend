@@ -132,9 +132,15 @@ const result = await Bun.build({
   sourcemap: "linked",
   define: {
     "process.env.NODE_ENV": JSON.stringify("production"),
-    "import.meta.env.PUBLIC_HUB_API_URL": JSON.stringify(process.env.PUBLIC_HUB_API_URL ?? ""),
+    "import.meta.env.PUBLIC_HUB_API_URL": JSON.stringify(
+      process.env.PUBLIC_HUB_API_URL ?? process.env.PUBLIC_API_BASE ?? "",
+    ),
+    "import.meta.env.PUBLIC_API_BASE": JSON.stringify(process.env.PUBLIC_API_BASE ?? ""),
     "import.meta.env.PUBLIC_HUB_PUBLIC_BASE_URL": JSON.stringify(
-      process.env.PUBLIC_HUB_PUBLIC_BASE_URL ?? "",
+      process.env.PUBLIC_HUB_PUBLIC_BASE_URL ??
+        process.env.PUBLIC_HUB_API_URL ??
+        process.env.PUBLIC_API_BASE ??
+        "",
     ),
   },
   ...cliConfig,

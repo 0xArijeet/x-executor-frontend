@@ -21,10 +21,10 @@ export function OrgInvitesPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   function load() {
-    if (!token || !orgId) return;
+    if (!token) return;
     setLoading(true);
     invitesApi
-      .list(token, orgId)
+      .list(token)
       .then(setInvites)
       .catch(err => setError(errorMessage(err)))
       .finally(() => setLoading(false));
@@ -36,7 +36,7 @@ export function OrgInvitesPage() {
 
   async function onCreate(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!token || !orgId) return;
+    if (!token) return;
     const formEl = e.currentTarget;
     const form = new FormData(formEl);
     const expiresRaw = form.get("expiresInHours") as string;
@@ -44,7 +44,7 @@ export function OrgInvitesPage() {
     setError(null);
     setCreating(true);
     try {
-      await invitesApi.create(token, orgId, {
+      await invitesApi.create(token, {
         ...(expiresRaw ? { expiresInHours: Number(expiresRaw) } : {}),
         ...(maxUsesRaw ? { maxUses: Number(maxUsesRaw) } : {}),
       });
@@ -58,11 +58,11 @@ export function OrgInvitesPage() {
   }
 
   async function handleRevoke(inviteId: string) {
-    if (!token || !orgId) return;
+    if (!token) return;
     if (!confirm("Revoke this invite?")) return;
     setError(null);
     try {
-      await invitesApi.revoke(token, orgId, inviteId);
+      await invitesApi.revoke(token, inviteId);
       load();
     } catch (err) {
       setError(errorMessage(err));

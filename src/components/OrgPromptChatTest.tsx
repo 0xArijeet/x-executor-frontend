@@ -3,23 +3,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { orgsApi } from "@/lib/hub/api";
+import { xSettingsApi } from "@/lib/hub/api";
 import type { ChatTestResponse } from "@/lib/hub/types";
 import { useState, type FormEvent } from "react";
 
 type OrgPromptChatTestProps = {
   token: string;
-  orgId: string;
   systemPrompt: string;
   llmModel: string;
 };
 
-export function OrgPromptChatTest({
-  token,
-  orgId,
-  systemPrompt,
-  llmModel,
-}: OrgPromptChatTestProps) {
+export function OrgPromptChatTest({ token, systemPrompt, llmModel }: OrgPromptChatTestProps) {
   const [userMessage, setUserMessage] = useState("");
   const [testing, setTesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +29,7 @@ export function OrgPromptChatTest({
     setError(null);
     setTesting(true);
     try {
-      const response = await orgsApi.testChat(token, orgId, {
+      const response = await xSettingsApi.testChat(token, {
         userMessage: userMessage.trim(),
         systemPrompt: promptTrimmed,
         llmModel,

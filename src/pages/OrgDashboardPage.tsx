@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { isAdmin, useOrgRole } from "@/lib/auth/RequireOrgRole";
 import { useAuth } from "@/lib/auth/AuthContext";
-import { connectionsApi, orgsApi } from "@/lib/hub/api";
+import { connectionsApi, xSettingsApi } from "@/lib/hub/api";
 import type { Connection, Organization } from "@/lib/hub/types";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -24,9 +24,9 @@ export function OrgDashboardPage() {
   const [error, setError] = useState<string | null>(null);
 
   function load() {
-    if (!token || !orgId) return;
+    if (!token) return;
     setLoading(true);
-    Promise.all([orgsApi.get(token, orgId), connectionsApi.list(token, orgId)])
+    Promise.all([xSettingsApi.get(token), connectionsApi.list(token)])
       .then(([o, c]) => {
         setOrg(o);
         setConnections(c);
@@ -40,11 +40,11 @@ export function OrgDashboardPage() {
   }, [token, orgId]);
 
   async function handleRevoke(connectionId: string, username: string) {
-    if (!token || !orgId) return;
+    if (!token) return;
     if (!confirm(`Revoke connection for @${username}?`)) return;
     setError(null);
     try {
-      await connectionsApi.revoke(token, orgId, connectionId);
+      await connectionsApi.revoke(token, connectionId);
       load();
     } catch (err) {
       setError(errorMessage(err));
@@ -104,7 +104,6 @@ export function OrgDashboardPage() {
           <CardContent>
             <OrgPromptForm
               token={token}
-              orgId={orgId}
               publishedPrompt={org?.systemPrompt ?? ""}
               initialDraft={org?.draftSystemPrompt ?? org?.systemPrompt ?? ""}
               publishedModel={org?.llmModel}
@@ -118,7 +117,7 @@ export function OrgDashboardPage() {
               <Link to={`/orgs/${orgId}/settings`} className="text-primary underline">
                 Organization settings
               </Link>{" "}
-              also lists members.
+              also includes handoff settings.
             </p>
           </CardContent>
         </Card>
@@ -162,7 +161,6 @@ export function OrgDashboardPage() {
                   <>
                     <ConnectionAdminPanel
                       token={token}
-                      orgId={orgId}
                       connectionId={conn.id}
                       onUpdated={load}
                       onError={setError}

@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button";
-import { isAdmin, useOrgRole } from "@/lib/auth/RequireOrgRole";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { useMyOrganization } from "@/lib/auth/useMyOrganization";
 import { cn } from "@/lib/utils";
@@ -9,9 +8,9 @@ export function AppShell() {
   const { user, logout } = useAuth();
   const { orgId } = useParams<{ orgId: string }>();
   const { org } = useMyOrganization();
-  const role = useOrgRole(orgId);
-  const admin = isAdmin(role);
-  const homePath = org ? `/orgs/${org.id}` : "/orgs";
+  const homeOrgId = user?.orgId ?? org?.id;
+  const homePath = homeOrgId ? `/orgs/${homeOrgId}` : "/orgs";
+  const navOrgId = orgId ?? homeOrgId;
 
   return (
     <div className="min-h-screen bg-background">
@@ -21,10 +20,10 @@ export function AppShell() {
             <Link to={homePath} className="text-lg font-semibold tracking-tight">
               X Executor
             </Link>
-            {orgId && (
+            {navOrgId && (
               <nav className="flex gap-3 text-sm">
                 <NavLink
-                  to={`/orgs/${orgId}`}
+                  to={`/orgs/${navOrgId}`}
                   end
                   className={({ isActive }) =>
                     cn("text-muted-foreground hover:text-foreground", isActive && "text-foreground font-medium")
@@ -33,43 +32,37 @@ export function AppShell() {
                   Connections
                 </NavLink>
                 <NavLink
-                  to={`/orgs/${orgId}/chats`}
+                  to={`/orgs/${navOrgId}/chats`}
                   className={({ isActive }) =>
                     cn("text-muted-foreground hover:text-foreground", isActive && "text-foreground font-medium")
                   }
                 >
                   Chats
                 </NavLink>
-                {admin && (
-                  <NavLink
-                    to={`/orgs/${orgId}/campaigns`}
-                    className={({ isActive }) =>
-                      cn("text-muted-foreground hover:text-foreground", isActive && "text-foreground font-medium")
-                    }
-                  >
-                    Campaigns
-                  </NavLink>
-                )}
-                {admin && (
-                  <>
-                    <NavLink
-                      to={`/orgs/${orgId}/invites`}
-                      className={({ isActive }) =>
-                        cn("text-muted-foreground hover:text-foreground", isActive && "text-foreground font-medium")
-                      }
-                    >
-                      Invites
-                    </NavLink>
-                    <NavLink
-                      to={`/orgs/${orgId}/settings`}
-                      className={({ isActive }) =>
-                        cn("text-muted-foreground hover:text-foreground", isActive && "text-foreground font-medium")
-                      }
-                    >
-                      Settings
-                    </NavLink>
-                  </>
-                )}
+                <NavLink
+                  to={`/orgs/${navOrgId}/campaigns`}
+                  className={({ isActive }) =>
+                    cn("text-muted-foreground hover:text-foreground", isActive && "text-foreground font-medium")
+                  }
+                >
+                  Campaigns
+                </NavLink>
+                <NavLink
+                  to={`/orgs/${navOrgId}/invites`}
+                  className={({ isActive }) =>
+                    cn("text-muted-foreground hover:text-foreground", isActive && "text-foreground font-medium")
+                  }
+                >
+                  Invites
+                </NavLink>
+                <NavLink
+                  to={`/orgs/${navOrgId}/settings`}
+                  className={({ isActive }) =>
+                    cn("text-muted-foreground hover:text-foreground", isActive && "text-foreground font-medium")
+                  }
+                >
+                  Settings
+                </NavLink>
               </nav>
             )}
           </div>

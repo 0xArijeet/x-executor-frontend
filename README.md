@@ -1,8 +1,8 @@
 # X Executor Frontend
 
-Admin dashboard and public connect flow for the [X Executor Hub](../x-executor/apps/hub) API (OAuth 1.0a, Account Activity, DM automation). Built with Bun, React 19, and Tailwind.
+Admin dashboard for [omnibot-backend](../omnibot-backend/apps/botmanager) X platform APIs (OAuth 1.0a, Account Activity, DM automation). Built with Bun, React 19, and Tailwind.
 
-See also [CREATE_AND_INTEGRATE_FRONTEND.md](../x-executor/docs/CREATE_AND_INTEGRATE_FRONTEND.md) in the monorepo for full architecture.
+Hub is **botmanager** at `/api/hub`. X features use JWT-scoped **`/api/hub/x/*`** routes (org from token, not URL). Responses use `{ success, data, error }`.
 
 ## Prerequisites
 
@@ -22,7 +22,7 @@ Copy `.env.example` to `.env`:
 |----------|---------|---------|
 | `PORT` | `5173` | Dev server (Hub uses 3000) |
 | `HUB_API_URL` | `http://localhost:3000` | Dev proxy: `/api/hub/*` → Hub `/api/hub/*` |
-| `PUBLIC_HUB_API_URL` | *(empty locally)* | If set (Hub URL), client calls `https://hub…/api/hub/*` directly (CORS). If empty, same-origin `/api/hub` |
+| `PUBLIC_HUB_API_URL` | *(empty locally)* | Hub origin for CORS API calls, e.g. `https://gcp-stage.plena.finance`. Alias: `PUBLIC_API_BASE` |
 | `PUBLIC_HUB_PUBLIC_BASE_URL` | `http://localhost:3000` | OAuth start links (Hub origin) |
 
 **Hub** (`.env` in `x-executor`):
@@ -54,12 +54,11 @@ Open http://localhost:5173
 | Route | Access | Purpose |
 |-------|--------|---------|
 | `/login`, `/register` | Public | Hub JWT auth |
-| `/orgs` | JWT | List/create orgs; prompt hint for admins |
-| `/orgs/:orgId` | JWT + member | Connections, readiness badges, prompts (admin), auth token + XChat PIN (admin) |
-| `/orgs/:orgId/campaigns/new` | JWT + admin | Create bulk DM campaign |
-| `/orgs/:orgId/campaigns/:campaignId` | JWT + member | Campaign progress (polls Hub status) |
-| `/orgs/:orgId/invites` | JWT + admin | Invite CRUD |
-| `/orgs/:orgId/settings` | JWT + admin | Prompts + members |
+| `/orgs` | JWT | Redirects to your org dashboard (`user.orgId` from JWT) |
+| `/orgs/:orgId` | JWT | Connections, prompts, auth token + XChat PIN |
+| `/orgs/:orgId/campaigns/*` | JWT | Campaign CRUD + progress (`GET /api/hub/x/campaigns/:id/status`) |
+| `/orgs/:orgId/invites` | JWT | Invite CRUD (`/api/hub/x/invites`) |
+| `/orgs/:orgId/settings` | JWT | Prompts + handoff (`/api/hub/x/settings`) |
 | `/connect/:token` | Public | Invite → OAuth 1.0a |
 | `/oauth/success` | Public | Hub redirect after connect |
 
@@ -81,7 +80,7 @@ PIN and auth token are password fields — submit once to Hub, never stored in f
 
 1. Ensure at least one connection has **auth token** saved (`/orgs/:orgId`).
 2. **Campaigns** nav → enter target usernames (one per line) and message → **Launch campaign**.
-3. Progress page polls `GET /api/hub/orgs/:orgId/campaigns/:id/status` every 15s until complete.
+3. Progress page polls `GET /api/hub/x/campaigns/:id/status` every 15s until complete.
 
 Requires Hub `NATS_URL` plus background **Scheduler**, **Sender**, and **Analytics** services (see monorepo [railway.md](../x-executor/docs/railway.md)).
 
@@ -136,7 +135,8 @@ WEBHOOK_PUBLIC_BASE_URL=https://your-webhook.up.railway.app
 | `redirect_uri` mismatch | Hub `X_REDIRECT_URI` must match X Developer Portal callback exactly |
 | JSON `"Redirect is requested"` | Redeploy Hub with browser login-flow redirect |
 | Back to `/connect` after X | `OAUTH_SUCCESS_REDIRECT_URL` must be `https://<vercel>/oauth/success` |
-| Login loop on Vercel | Set `PUBLIC_HUB_API_URL` and redeploy frontend |
+| Login fails on staging / Plena Hub | Staging returns `{ success, data, error }` envelopes — frontend unwraps these. Set `PUBLIC_HUB_API_URL=https://gcp-stage.plena.finance` and redeploy |
+| Login loop on Vercel | Set `PUBLIC_HUB_API_URL` (or `PUBLIC_API_BASE`) and redeploy frontend |
 
 **DM automation**
 

@@ -36,9 +36,9 @@ export function CampaignProgressPage() {
   const [controlling, setControlling] = useState(false);
 
   function load() {
-    if (!token || !orgId || !campaignId) return;
+    if (!token || !campaignId) return;
     campaignsApi
-      .getStatus(token, orgId, campaignId)
+      .getStatus(token, campaignId)
       .then(result => {
         setCampaign(result);
         setNameDraft(result.name);
@@ -48,9 +48,9 @@ export function CampaignProgressPage() {
   }
 
   useEffect(() => {
-    if (!token || !orgId) return;
+    if (!token) return;
     connectionsApi
-      .list(token, orgId)
+      .list(token)
       .then(setConnections)
       .catch(() => setConnections([]));
   }, [token, orgId]);
@@ -66,13 +66,13 @@ export function CampaignProgressPage() {
   }, [campaign?.status, token, orgId, campaignId]);
 
   async function handleSaveName() {
-    if (!token || !orgId || !campaignId || !admin) return;
+    if (!token || !campaignId || !admin) return;
     const trimmed = nameDraft.trim();
     if (!trimmed || trimmed === campaign?.name) return;
     setNameError(null);
     setSavingName(true);
     try {
-      const result = await campaignsApi.updateName(token, orgId, campaignId, trimmed);
+      const result = await campaignsApi.updateName(token, campaignId, trimmed);
       setCampaign(current =>
         current ? { ...current, name: result.name, updatedAt: result.updatedAt } : current,
       );
@@ -85,7 +85,7 @@ export function CampaignProgressPage() {
   }
 
   async function handleControl(action: "pause" | "resume" | "stop") {
-    if (!token || !orgId || !campaignId || !admin || !campaign) return;
+    if (!token || !campaignId || !admin || !campaign) return;
 
     if (action === "stop") {
       const confirmed = confirm(
@@ -99,10 +99,10 @@ export function CampaignProgressPage() {
     try {
       const result =
         action === "pause"
-          ? await campaignsApi.pause(token, orgId, campaignId)
+          ? await campaignsApi.pause(token, campaignId)
           : action === "resume"
-            ? await campaignsApi.resume(token, orgId, campaignId)
-            : await campaignsApi.stop(token, orgId, campaignId);
+            ? await campaignsApi.resume(token, campaignId)
+            : await campaignsApi.stop(token, campaignId);
 
       setCampaign(current =>
         current

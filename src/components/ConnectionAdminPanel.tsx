@@ -9,7 +9,6 @@ const XCHAT_PIN_PATTERN = /^\d{4,8}$/;
 
 type ConnectionAdminPanelProps = {
   token: string;
-  orgId: string;
   connectionId: string;
   onUpdated: () => void;
   onError: (message: string | null) => void;
@@ -17,7 +16,6 @@ type ConnectionAdminPanelProps = {
 
 export function ConnectionAdminPanel({
   token,
-  orgId,
   connectionId,
   onUpdated,
   onError,
@@ -35,7 +33,7 @@ export function ConnectionAdminPanel({
     onError(null);
     setSavingToken(true);
     try {
-      await connectionsApi.setAuthToken(token, orgId, connectionId, value);
+      await connectionsApi.setAuthToken(token, connectionId, value);
       setAuthToken("");
       setTokenSaved(true);
       setPinSaved(false);
@@ -55,7 +53,7 @@ export function ConnectionAdminPanel({
     onError(null);
     setSavingPin(true);
     try {
-      await connectionsApi.setXchatPin(token, orgId, connectionId, xchatPin);
+      await connectionsApi.setXchatPin(token, connectionId, xchatPin);
       setXchatPin("");
       setPinSaved(true);
       setTokenSaved(false);

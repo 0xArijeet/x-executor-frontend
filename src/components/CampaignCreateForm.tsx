@@ -19,12 +19,11 @@ const DMS_PER_HOUR_OPTIONS = [5, 10, 15, 20, 25, 30] as const;
 
 type CampaignCreateFormProps = {
   token: string;
-  orgId: string;
   connections: Connection[];
   onCreated: (campaignId: string) => void;
 };
 
-export function CampaignCreateForm({ token, orgId, connections, onCreated }: CampaignCreateFormProps) {
+export function CampaignCreateForm({ token, connections, onCreated }: CampaignCreateFormProps) {
   const [name, setName] = useState("");
   const [targetsRaw, setTargetsRaw] = useState("");
   const [messageText, setMessageText] = useState("");
@@ -75,7 +74,7 @@ export function CampaignCreateForm({ token, orgId, connections, onCreated }: Cam
     setError(null);
     setSubmitting(true);
     try {
-      const result = await campaignsApi.create(token, orgId, {
+      const result = await campaignsApi.create(token, {
         name: name.trim(),
         targetUsernames: parsedTargets,
         messageText: messageText.trim(),

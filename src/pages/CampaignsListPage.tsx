@@ -16,15 +16,15 @@ export function CampaignsListPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!token || !orgId) return;
+    if (!token) return;
     setLoading(true);
     setError(null);
     campaignsApi
-      .list(token, orgId)
+      .list(token)
       .then(setCampaigns)
       .catch(err => setError(errorMessage(err)))
       .finally(() => setLoading(false));
-  }, [token, orgId]);
+  }, [token]);
 
   return (
     <div>

@@ -16,9 +16,9 @@ export function CampaignCreatePage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!token || !orgId) return;
+    if (!token) return;
     connectionsApi
-      .list(token, orgId)
+      .list(token)
       .then(setConnections)
       .catch(err => setError(errorMessage(err)))
       .finally(() => setLoading(false));
@@ -44,7 +44,6 @@ export function CampaignCreatePage() {
       {token && orgId && (
         <CampaignCreateForm
           token={token}
-          orgId={orgId}
           connections={connections}
           onCreated={campaignId => navigate(`/orgs/${orgId}/campaigns/${campaignId}`)}
         />
