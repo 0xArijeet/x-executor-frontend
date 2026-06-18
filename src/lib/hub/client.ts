@@ -1,6 +1,6 @@
-import { HUB_API_PREFIX } from "./constants";
+import { API_PREFIX } from "./constants";
 
-export { HUB_API_PREFIX };
+export { API_PREFIX };
 
 export class HubApiError extends Error {
   constructor(
@@ -20,7 +20,13 @@ export function hubPublicBaseUrl(): string {
   return (import.meta.env.PUBLIC_HUB_PUBLIC_BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
 }
 
-/** Returns null if the configured Hub URL is missing a hostname (common misconfig on Vercel/Hub). */
+/** Hub mount on the upstream server (when calling Hub directly with CORS). */
+const HUB_UPSTREAM_PREFIX = "/api/v1";
+
+function resolveApiPrefix(): string {
+  return apiBase() ? HUB_UPSTREAM_PREFIX : API_PREFIX;
+}
+
 function validateAbsoluteHubUrl(url: string, envName: string): string | null {
   try {
     const { hostname, protocol } = new URL(url);
@@ -40,7 +46,7 @@ export function validateHubPublicBaseUrl(): string | null {
   return validateAbsoluteHubUrl(hubPublicBaseUrl(), "PUBLIC_HUB_PUBLIC_BASE_URL");
 }
 
-/** Empty api base is OK on localhost (Bun dev proxy). On Vercel it causes login/API to hit HTML instead of Hub. */
+/** Empty api base is OK on localhost (Bun dev proxy). On Vercel use `/api/hub` rewrite or set PUBLIC_HUB_API_URL. */
 export function validateHubApiUrl(): string | null {
   const base = apiBase();
   if (base) {
@@ -52,11 +58,22 @@ export function validateHubApiUrl(): string | null {
       return null;
     }
   }
-  return "PUBLIC_HUB_API_URL was not set at build time. Add it in Vercel (same as your Hub URL), then redeploy.";
+  return "Set PUBLIC_HUB_API_URL at build time, or configure a Vercel rewrite for /api/hub → Hub /api/v1.";
 }
 
 export function oauthStartUrl(inviteToken: string): string {
-  return `${hubPublicBaseUrl()}/${HUB_API_PREFIX}/oauth/x/start?invite=${encodeURIComponent(inviteToken)}`;
+  const query = `?invite=${encodeURIComponent(inviteToken)}`;
+  const apiBaseUrl = apiBase();
+  if (apiBaseUrl) {
+    return `${apiBaseUrl}${HUB_UPSTREAM_PREFIX}/oauth/x/start${query}`;
+  }
+  if (typeof window !== "undefined") {
+    const { hostname } = window.location;
+    if (hostname === "localhost" || hostname === "127.0.0.1") {
+      return `${API_PREFIX}/oauth/x/start${query}`;
+    }
+  }
+  return `${hubPublicBaseUrl()}${HUB_UPSTREAM_PREFIX}/oauth/x/start${query}`;
 }
 
 export async function hubFetch<T>(
@@ -64,7 +81,7 @@ export async function hubFetch<T>(
   options: RequestInit & { token?: string } = {},
 ): Promise<T> {
   const { token, headers, ...rest } = options;
-  const res = await fetch(`${apiBase()}/${HUB_API_PREFIX}${path}`, {
+  const res = await fetch(`${apiBase()}${resolveApiPrefix()}${path}`, {
     ...rest,
     headers: {
       "Content-Type": "application/json",

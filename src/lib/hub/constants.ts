@@ -1,2 +1,2 @@
-/** Hub API path prefix (must match gateway / Hub mount). */
-export const HUB_API_PREFIX = "xbot/v1/api/hub";
+/** Browser-facing Hub API base path (dev proxy + Vercel rewrite map to Hub `/api/v1`). */
+export const API_PREFIX = "/api/hub";

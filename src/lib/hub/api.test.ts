@@ -16,7 +16,7 @@ function jsonResponse(body: unknown, status = 200) {
 
 test("connectionsApi.setXchatPin PATCHes xchat-pin with bearer token", async () => {
   const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
-    expect(String(input)).toContain("/xbot/v1/api/hub/orgs/org-1/connections/conn-1/xchat-pin");
+    expect(String(input)).toContain("/api/hub/orgs/org-1/connections/conn-1/xchat-pin");
     expect(init?.method).toBe("PATCH");
     expect(init?.headers).toMatchObject({
       Authorization: "Bearer jwt-test",
@@ -34,7 +34,7 @@ test("connectionsApi.setXchatPin PATCHes xchat-pin with bearer token", async () 
 
 test("connectionsApi.setAuthToken PATCHes auth-token with bearer token", async () => {
   const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
-    expect(String(input)).toContain("/xbot/v1/api/hub/orgs/org-2/connections/conn-2/auth-token");
+    expect(String(input)).toContain("/api/hub/orgs/org-2/connections/conn-2/auth-token");
     expect(init?.method).toBe("PATCH");
     expect(JSON.parse(String(init?.body))).toEqual({ authToken: "secret-token" });
     return jsonResponse({ updated: true, hasAuthToken: true });
@@ -47,7 +47,7 @@ test("connectionsApi.setAuthToken PATCHes auth-token with bearer token", async (
 
 test("campaignsApi.list GETs org campaigns", async () => {
   const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
-    expect(String(input)).toContain("/xbot/v1/api/hub/orgs/org-1/campaigns");
+    expect(String(input)).toContain("/api/hub/orgs/org-1/campaigns");
     expect(init?.method).toBeUndefined();
     return jsonResponse([
       {
@@ -71,7 +71,7 @@ test("campaignsApi.list GETs org campaigns", async () => {
 
 test("campaignsApi.updateName PATCHes campaign name", async () => {
   const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
-    expect(String(input)).toContain("/xbot/v1/api/hub/orgs/org-1/campaigns/camp-1");
+    expect(String(input)).toContain("/api/hub/orgs/org-1/campaigns/camp-1");
     expect(init?.method).toBe("PATCH");
     expect(JSON.parse(String(init?.body))).toEqual({ name: "Renamed" });
     return jsonResponse({
@@ -88,7 +88,7 @@ test("campaignsApi.updateName PATCHes campaign name", async () => {
 
 test("campaignsApi.create POSTs campaign with bearer token", async () => {
   const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
-    expect(String(input)).toContain("/xbot/v1/api/hub/orgs/org-1/campaigns");
+    expect(String(input)).toContain("/api/hub/orgs/org-1/campaigns");
     expect(init?.method).toBe("POST");
     expect(JSON.parse(String(init?.body))).toEqual({
       name: "Q1 outreach",
@@ -124,7 +124,7 @@ test("campaignsApi.create POSTs campaign with bearer token", async () => {
 
 test("campaignsApi.getStatus GETs campaign status", async () => {
   const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
-    expect(String(input)).toContain("/xbot/v1/api/hub/orgs/org-1/campaigns/camp-1/status");
+    expect(String(input)).toContain("/api/hub/orgs/org-1/campaigns/camp-1/status");
     expect(init?.method).toBeUndefined();
     return jsonResponse({
       id: "camp-1",
@@ -152,7 +152,7 @@ test("campaignsApi.getStatus GETs campaign status", async () => {
 
 test("campaignsApi.pause POSTs campaign pause", async () => {
   const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
-    expect(String(input)).toContain("/xbot/v1/api/hub/orgs/org-1/campaigns/camp-1/pause");
+    expect(String(input)).toContain("/api/hub/orgs/org-1/campaigns/camp-1/pause");
     expect(init?.method).toBe("POST");
     return jsonResponse({
       id: "camp-1",
@@ -169,7 +169,7 @@ test("campaignsApi.pause POSTs campaign pause", async () => {
 
 test("campaignsApi.resume POSTs campaign resume", async () => {
   const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
-    expect(String(input)).toContain("/xbot/v1/api/hub/orgs/org-1/campaigns/camp-1/resume");
+    expect(String(input)).toContain("/api/hub/orgs/org-1/campaigns/camp-1/resume");
     expect(init?.method).toBe("POST");
     return jsonResponse({
       id: "camp-1",
@@ -186,7 +186,7 @@ test("campaignsApi.resume POSTs campaign resume", async () => {
 
 test("campaignsApi.stop POSTs campaign stop", async () => {
   const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
-    expect(String(input)).toContain("/xbot/v1/api/hub/orgs/org-1/campaigns/camp-1/stop");
+    expect(String(input)).toContain("/api/hub/orgs/org-1/campaigns/camp-1/stop");
     expect(init?.method).toBe("POST");
     return jsonResponse({
       id: "camp-1",
@@ -206,7 +206,7 @@ test("campaignsApi.stop POSTs campaign stop", async () => {
 
 test("chatsApi.listConversations GETs org chats with pagination", async () => {
   const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
-    expect(String(input)).toContain("/xbot/v1/api/hub/orgs/org-1/chats?page=1&limit=20");
+    expect(String(input)).toContain("/api/hub/orgs/org-1/chats?page=1&limit=20");
     expect(init?.method).toBeUndefined();
     return jsonResponse({
       data: [
@@ -238,7 +238,7 @@ test("chatsApi.listConversations GETs org chats with pagination", async () => {
 test("chatsApi.getMessages GETs conversation messages", async () => {
   const fetchMock = mock(async (input: RequestInfo | URL) => {
     expect(String(input)).toContain(
-      "/xbot/v1/api/hub/orgs/org-1/chats/3012852462-1345154135381794816?page=1&limit=50",
+      "/api/hub/orgs/org-1/chats/3012852462-1345154135381794816?page=1&limit=50",
     );
     return jsonResponse({
       data: [
@@ -268,7 +268,7 @@ test("chatsApi.getMessages GETs conversation messages", async () => {
 
 test("orgsApi.testChat POSTs chat test with bearer token", async () => {
   const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
-    expect(String(input)).toContain("/xbot/v1/api/hub/orgs/org-1/chat/test");
+    expect(String(input)).toContain("/api/hub/orgs/org-1/chat/test");
     expect(init?.method).toBe("POST");
     expect(init?.headers).toMatchObject({
       Authorization: "Bearer jwt-test",
@@ -298,7 +298,7 @@ test("orgsApi.testChat POSTs chat test with bearer token", async () => {
 
 test("orgsApi.publishPrompt POSTs prompt publish", async () => {
   const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
-    expect(String(input)).toContain("/xbot/v1/api/hub/orgs/org-1/prompt/publish");
+    expect(String(input)).toContain("/api/hub/orgs/org-1/prompt/publish");
     expect(init?.method).toBe("POST");
     return jsonResponse({
       id: "org-1",
@@ -318,7 +318,7 @@ test("orgsApi.publishPrompt POSTs prompt publish", async () => {
 
 test("orgsApi.discardDraft POSTs prompt discard", async () => {
   const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
-    expect(String(input)).toContain("/xbot/v1/api/hub/orgs/org-1/prompt/discard");
+    expect(String(input)).toContain("/api/hub/orgs/org-1/prompt/discard");
     expect(init?.method).toBe("POST");
     return jsonResponse({
       id: "org-1",
@@ -336,7 +336,7 @@ test("orgsApi.discardDraft POSTs prompt discard", async () => {
 
 test("orgsApi.listLlmModels GETs OpenRouter model catalog", async () => {
   const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
-    expect(String(input)).toContain("/xbot/v1/api/hub/orgs/org-1/llm/models");
+    expect(String(input)).toContain("/api/hub/orgs/org-1/llm/models");
     expect(init?.method).toBeUndefined();
     return jsonResponse([
       {
@@ -353,7 +353,7 @@ test("orgsApi.listLlmModels GETs OpenRouter model catalog", async () => {
 
 test("orgsApi.updateHandoff PATCHes handoff settings", async () => {
   const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
-    expect(String(input)).toContain("/xbot/v1/api/hub/orgs/org-1/handoff");
+    expect(String(input)).toContain("/api/hub/orgs/org-1/handoff");
     expect(init?.method).toBe("PATCH");
     expect(JSON.parse(String(init?.body))).toEqual({
       handoffEnabled: true,

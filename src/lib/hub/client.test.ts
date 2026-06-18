@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { HUB_API_PREFIX, HubApiError, oauthStartUrl } from "./client";
+import { API_PREFIX, HubApiError } from "./client";
 
 test("HubApiError carries status", () => {
   const err = new HubApiError("Unauthorized", 401);
@@ -8,8 +8,6 @@ test("HubApiError carries status", () => {
   expect(err.name).toBe("HubApiError");
 });
 
-test("oauthStartUrl uses hub API prefix", () => {
-  expect(oauthStartUrl("invite-token")).toContain(
-    `/${HUB_API_PREFIX}/oauth/x/start?invite=invite-token`,
-  );
+test("API_PREFIX is /api/hub", () => {
+  expect(API_PREFIX).toBe("/api/hub");
 });

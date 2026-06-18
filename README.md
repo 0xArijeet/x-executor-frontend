@@ -9,8 +9,10 @@ See also [CREATE_AND_INTEGRATE_FRONTEND.md](../x-executor/docs/CREATE_AND_INTEGR
 1. **Hub** + MongoDB + Redis (see [railway.md](../x-executor/docs/railway.md)).
 2. **X Developer App** with **OAuth 1.0a** (Consumer Keys), **Read, Write, and Direct Messages**, and **Account Activity API** access.
 3. Hub callback URL (exact match in X Developer Portal):
-   - Local: `http://localhost:3000/xbot/v1/api/hub/oauth/x/callback`
-   - Production: `https://<hub-domain>/xbot/v1/api/hub/oauth/x/callback`
+   - Local: `http://localhost:3000/api/v1/oauth/x/callback`
+   - Production: `https://<hub-domain>/api/v1/oauth/x/callback`
+
+The browser calls Hub JSON APIs at **`/api/hub/*`** (dev proxy and optional Vercel rewrite → Hub `/api/v1/*`). OAuth start still hits Hub directly via `PUBLIC_HUB_PUBLIC_BASE_URL`.
 
 ## Environment
 
@@ -19,8 +21,8 @@ Copy `.env.example` to `.env`:
 | Variable | Example | Purpose |
 |----------|---------|---------|
 | `PORT` | `5173` | Dev server (Hub uses 3000) |
-| `HUB_API_URL` | `http://localhost:3000` | Dev proxy target for `/xbot/*` |
-| `PUBLIC_HUB_API_URL` | *(empty locally)* | Client API base; production = Hub URL |
+| `HUB_API_URL` | `http://localhost:3000` | Dev proxy: `/api/hub/*` → Hub `/api/v1/*` |
+| `PUBLIC_HUB_API_URL` | *(empty locally)* | If set (Hub URL), client calls Hub `/api/v1` directly (CORS). If empty, client uses `/api/hub` |
 | `PUBLIC_HUB_PUBLIC_BASE_URL` | `http://localhost:3000` | OAuth start links (Hub origin) |
 
 **Hub** (`.env` in `x-executor`):
@@ -31,7 +33,7 @@ HUB_PUBLIC_BASE_URL=http://localhost:3000
 WEBHOOK_PUBLIC_BASE_URL=http://localhost:3001
 X_API_KEY=...
 X_API_KEY_SECRET=...
-X_REDIRECT_URI=http://localhost:3000/xbot/v1/api/hub/oauth/x/callback
+X_REDIRECT_URI=http://localhost:3000/api/v1/oauth/x/callback
 X_REGISTER_WEBHOOKS_WITH_X=true
 ```
 
@@ -79,7 +81,7 @@ PIN and auth token are password fields — submit once to Hub, never stored in f
 
 1. Ensure at least one connection has **auth token** saved (`/orgs/:orgId`).
 2. **Campaigns** nav → enter target usernames (one per line) and message → **Launch campaign**.
-3. Progress page polls `GET /xbot/v1/api/hub/orgs/:orgId/campaigns/:id/status` every 15s until complete.
+3. Progress page polls `GET /api/hub/orgs/:orgId/campaigns/:id/status` every 15s until complete.
 
 Requires Hub `NATS_URL` plus background **Scheduler**, **Sender**, and **Analytics** services (see monorepo [railway.md](../x-executor/docs/railway.md)).
 
@@ -89,12 +91,22 @@ Requires Hub `NATS_URL` plus background **Scheduler**, **Sender**, and **Analyti
 bun run build   # output: dist/
 ```
 
-Set at **build time**:
+Set at **build time** (either mode):
+
+**Option A — CORS (direct Hub):**
 
 ```bash
 PUBLIC_HUB_API_URL=https://your-hub.up.railway.app
 PUBLIC_HUB_PUBLIC_BASE_URL=https://your-hub.up.railway.app
 ```
+
+**Option B — Same-origin `/api/hub` (Vercel rewrite before SPA fallback):**
+
+```json
+{ "source": "/api/hub/:path*", "destination": "https://your-hub.up.railway.app/api/v1/:path*" }
+```
+
+Leave `PUBLIC_HUB_API_URL` empty at build time.
 
 Hub production:
 
@@ -149,4 +161,4 @@ bun test
 | `src/components/OrgPromptForm.tsx` | System prompt editor |
 | `src/components/ConnectionAdminPanel.tsx` | Auth token + XChat PIN |
 | `src/pages/ConnectPage.tsx` | Public OAuth start |
-| `src/hub-proxy.ts` | Dev API proxy |
+| `src/lib/hub/constants.ts` | `API_PREFIX` (`/api/hub`) |
