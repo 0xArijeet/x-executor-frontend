@@ -8,6 +8,7 @@ import type {
   InvitePublic,
   Organization,
   UpdatePromptInput,
+  UpdateConversationGoalInput,
   UpdateHandoffInput,
   ChatTestInput,
   ChatTestResponse,
@@ -56,6 +57,13 @@ export const xSettingsApi = {
   },
   updatePrompt(token: string, input: UpdatePromptInput) {
     return hubFetch<Organization>("/x/settings/prompt", {
+      method: "PATCH",
+      token,
+      body: JSON.stringify(input),
+    });
+  },
+  updateGoal(token: string, input: UpdateConversationGoalInput) {
+    return hubFetch<Organization>("/x/settings/goal", {
       method: "PATCH",
       token,
       body: JSON.stringify(input),

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { isAdmin, useOrgRole } from "@/lib/auth/RequireOrgRole";
 import { useAuth } from "@/lib/auth/AuthContext";
+import { hasPublishedReplyConfig, resolveDraftGoal } from "@/lib/conversation-goal";
 import { connectionsApi, xSettingsApi } from "@/lib/hub/api";
 import type { Connection, Organization } from "@/lib/hub/types";
 import { useEffect, useState } from "react";
@@ -53,7 +54,7 @@ export function OrgDashboardPage() {
 
   if (loading) return <p className="text-muted-foreground">Loading…</p>;
 
-  const promptMissing = !org?.systemPrompt?.trim();
+  const automationMissing = !hasPublishedReplyConfig(org);
 
   return (
     <div>
@@ -79,37 +80,38 @@ export function OrgDashboardPage() {
 
       <ErrorAlert error={error} />
 
-      {admin && promptMissing && (
+      {admin && automationMissing && (
         <Card className="mb-6 border-amber-500/40">
           <CardContent className="py-4 text-sm text-muted-foreground">
-            <strong className="text-foreground">System prompt not published.</strong> Save a draft,
-            test it, then publish before automated DM replies will run.
+            <strong className="text-foreground">Conversation goal not published.</strong> Save a
+            draft, test it, then publish before automated DM replies will run.
           </CardContent>
         </Card>
       )}
 
-      {admin && token && orgId && (
+      {admin && token && orgId && org && (
         <Card className="mb-6">
           <CardHeader>
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
-                <CardTitle className="text-lg">Automation prompts</CardTitle>
+                <CardTitle className="text-lg">Conversation Goal</CardTitle>
                 <CardDescription>
-                  Draft, test, and publish LLM instructions for inbound DM replies.
+                  Choose a goal, add details, and tune directness for inbound DM replies.
                 </CardDescription>
               </div>
-              {promptMissing && <Badge variant="destructive">Required for replies</Badge>}
+              {automationMissing && <Badge variant="destructive">Required for replies</Badge>}
             </div>
           </CardHeader>
           <CardContent>
             <OrgPromptForm
               token={token}
-              publishedPrompt={org?.systemPrompt ?? ""}
-              initialDraft={org?.draftSystemPrompt ?? org?.systemPrompt ?? ""}
-              publishedModel={org?.llmModel}
-              initialDraftModel={org?.draftLlmModel ?? org?.llmModel}
-              hasUnpublishedDraft={org?.hasUnpublishedDraft}
-              promptPublishedAt={org?.promptPublishedAt}
+              publishedGoal={org.conversationGoal}
+              initialDraftGoal={resolveDraftGoal(org)}
+              legacyPublishedPrompt={org.systemPrompt}
+              publishedModel={org.llmModel}
+              initialDraftModel={org.draftLlmModel ?? org.llmModel}
+              hasUnpublishedDraft={org.hasUnpublishedDraft}
+              promptPublishedAt={org.promptPublishedAt}
               onUpdated={setOrg}
               compact
             />

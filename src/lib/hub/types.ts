@@ -13,10 +13,13 @@ export type AuthResponse = {
 
 export type Organization = {
   id: string;
+  orgId?: string;
   name: string;
   slug?: string;
   systemPrompt?: string;
   draftSystemPrompt?: string;
+  conversationGoal?: ConversationGoal;
+  draftConversationGoal?: ConversationGoal;
   hasUnpublishedDraft?: boolean;
   promptPublishedAt?: string;
   llmModel?: string;
@@ -26,6 +29,21 @@ export type Organization = {
   handoffMessage?: string;
   createdBy: string;
   createdAt?: string;
+};
+
+export type ConversationGoalType =
+  | "product_signups"
+  | "grow_discord"
+  | "grow_telegram"
+  | "book_a_call"
+  | "collect_leads"
+  | "drive_traffic"
+  | "custom";
+
+export type ConversationGoal = {
+  type: ConversationGoalType;
+  details: string;
+  directness: number;
 };
 
 export type OrganizationWithRole = Organization & {
@@ -79,6 +97,13 @@ export type CreateInviteInput = {
 
 export type UpdatePromptInput = {
   systemPrompt?: string;
+  llmModel?: string;
+};
+
+export type UpdateConversationGoalInput = {
+  goalType: ConversationGoalType;
+  goalDetails: string;
+  directness: number;
   llmModel?: string;
 };
 

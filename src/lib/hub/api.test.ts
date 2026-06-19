@@ -94,6 +94,37 @@ test("chatsApi.listConversations GETs chats with pagination", async () => {
   await chatsApi.listConversations("jwt-test");
 });
 
+test("xSettingsApi.updateGoal PATCHes conversation goal", async () => {
+  const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
+    expect(String(input)).toContain("/api/hub/x/settings/goal");
+    expect(init?.method).toBe("PATCH");
+    expect(JSON.parse(String(init?.body))).toEqual({
+      goalType: "grow_discord",
+      goalDetails: "Invite people to our Discord.",
+      directness: 50,
+      llmModel: "google/gemini-3.5-flash",
+    });
+    return jsonResponse({
+      id: "org-1",
+      conversationGoal: {
+        type: "grow_discord",
+        details: "Invite people to our Discord.",
+        directness: 50,
+      },
+      hasUnpublishedDraft: true,
+    });
+  });
+  globalThis.fetch = fetchMock as typeof fetch;
+
+  const result = await xSettingsApi.updateGoal("jwt-test", {
+    goalType: "grow_discord",
+    goalDetails: "Invite people to our Discord.",
+    directness: 50,
+    llmModel: "google/gemini-3.5-flash",
+  });
+  expect(result.hasUnpublishedDraft).toBe(true);
+});
+
 test("xSettingsApi.testChat POSTs chat test", async () => {
   const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
     expect(String(input)).toContain("/api/hub/x/settings/chat/test");
@@ -104,7 +135,7 @@ test("xSettingsApi.testChat POSTs chat test", async () => {
 
   const result = await xSettingsApi.testChat("jwt-test", {
     userMessage: "Hello",
-    systemPrompt: "You are helpful.",
+    llmModel: "google/gemini-3.5-flash",
   });
   expect(result.reply).toBe("Hi");
 });

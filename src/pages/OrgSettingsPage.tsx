@@ -2,6 +2,7 @@ import { ErrorAlert, errorMessage } from "@/components/ErrorAlert";
 import { OrgPromptForm } from "@/components/OrgPromptForm";
 import { OrgHandoffForm } from "@/components/OrgHandoffForm";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { resolveDraftGoal } from "@/lib/conversation-goal";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { xSettingsApi } from "@/lib/hub/api";
 import type { Organization } from "@/lib/hub/types";
@@ -36,21 +37,22 @@ export function OrgSettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Organization prompts</CardTitle>
+          <CardTitle className="text-lg">Conversation Goal</CardTitle>
           <CardDescription>
-            Draft, test, and publish the system prompt and LLM model for DM automation.
+            Choose a goal, add details, and tune directness for inbound DM automation.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {token && (
+          {token && org && (
             <OrgPromptForm
               token={token}
-              publishedPrompt={org?.systemPrompt ?? ""}
-              initialDraft={org?.draftSystemPrompt ?? org?.systemPrompt ?? ""}
-              publishedModel={org?.llmModel}
-              initialDraftModel={org?.draftLlmModel ?? org?.llmModel}
-              hasUnpublishedDraft={org?.hasUnpublishedDraft}
-              promptPublishedAt={org?.promptPublishedAt}
+              publishedGoal={org.conversationGoal}
+              initialDraftGoal={resolveDraftGoal(org)}
+              legacyPublishedPrompt={org.systemPrompt}
+              publishedModel={org.llmModel}
+              initialDraftModel={org.draftLlmModel ?? org.llmModel}
+              hasUnpublishedDraft={org.hasUnpublishedDraft}
+              promptPublishedAt={org.promptPublishedAt}
               onUpdated={setOrg}
             />
           )}

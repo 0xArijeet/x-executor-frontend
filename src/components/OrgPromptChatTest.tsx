@@ -9,18 +9,24 @@ import { useState, type FormEvent } from "react";
 
 type OrgPromptChatTestProps = {
   token: string;
-  systemPrompt: string;
+  goalConfigured: boolean;
   llmModel: string;
+  hasLocalChanges?: boolean;
 };
 
-export function OrgPromptChatTest({ token, systemPrompt, llmModel }: OrgPromptChatTestProps) {
+export function OrgPromptChatTest({
+  token,
+  goalConfigured,
+  llmModel,
+  hasLocalChanges = false,
+}: OrgPromptChatTestProps) {
   const [userMessage, setUserMessage] = useState("");
   const [testing, setTesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ChatTestResponse | null>(null);
 
-  const promptTrimmed = systemPrompt.trim();
-  const canTest = promptTrimmed.length > 0 && userMessage.trim().length > 0 && !testing;
+  const canTest =
+    goalConfigured && !hasLocalChanges && userMessage.trim().length > 0 && !testing;
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -31,7 +37,6 @@ export function OrgPromptChatTest({ token, systemPrompt, llmModel }: OrgPromptCh
     try {
       const response = await xSettingsApi.testChat(token, {
         userMessage: userMessage.trim(),
-        systemPrompt: promptTrimmed,
         llmModel,
       });
       setResult(response);
@@ -46,9 +51,9 @@ export function OrgPromptChatTest({ token, systemPrompt, llmModel }: OrgPromptCh
   return (
     <div className="border-t border-border pt-4 space-y-4">
       <div>
-        <p className="text-sm font-medium text-foreground">Test prompt</p>
+        <p className="text-sm font-medium text-foreground">Test conversation goal</p>
         <p className="text-xs text-muted-foreground mt-1">
-          Send a sample DM question using the draft prompt and model above (unsaved or saved draft).
+          Send a sample DM using the saved draft goal and model above.
         </p>
       </div>
 
@@ -63,7 +68,7 @@ export function OrgPromptChatTest({ token, systemPrompt, llmModel }: OrgPromptCh
             value={userMessage}
             onChange={e => setUserMessage(e.target.value)}
             placeholder="What chains do you support?"
-            disabled={!promptTrimmed}
+            disabled={!goalConfigured || hasLocalChanges}
           />
         </div>
 
@@ -71,8 +76,15 @@ export function OrgPromptChatTest({ token, systemPrompt, llmModel }: OrgPromptCh
           {testing ? "Testing…" : "Send test"}
         </Button>
 
-        {!promptTrimmed && (
-          <p className="text-xs text-muted-foreground">Enter a system prompt above to enable testing.</p>
+        {!goalConfigured && (
+          <p className="text-xs text-muted-foreground">
+            Enter goal details and save a draft to enable testing.
+          </p>
+        )}
+        {goalConfigured && hasLocalChanges && (
+          <p className="text-xs text-muted-foreground">
+            Save your draft first — tests use the saved draft on the server.
+          </p>
         )}
       </form>
 
