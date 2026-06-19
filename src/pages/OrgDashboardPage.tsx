@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { isAdmin, useOrgRole } from "@/lib/auth/RequireOrgRole";
 import { useAuth } from "@/lib/auth/AuthContext";
-import { hasPublishedReplyConfig, resolveDraftGoal } from "@/lib/conversation-goal";
+import { hasPublishedReplyConfig, resolveDraftGoals, resolvePublishedGoals } from "@/lib/conversation-goal";
 import { connectionsApi, xSettingsApi } from "@/lib/hub/api";
 import type { Connection, Organization } from "@/lib/hub/types";
 import { useEffect, useState } from "react";
@@ -83,8 +83,9 @@ export function OrgDashboardPage() {
       {admin && automationMissing && (
         <Card className="mb-6 border-amber-500/40">
           <CardContent className="py-4 text-sm text-muted-foreground">
-            <strong className="text-foreground">Conversation goal not published.</strong> Save a
-            draft, test it, then publish before automated DM replies will run.
+            <strong className="text-foreground">Reply settings not published.</strong> Save a draft
+            with a system prompt and/or goals, test it, then publish before automated DM replies
+            will run.
           </CardContent>
         </Card>
       )}
@@ -94,9 +95,9 @@ export function OrgDashboardPage() {
           <CardHeader>
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
-                <CardTitle className="text-lg">Conversation Goal</CardTitle>
+                <CardTitle className="text-lg">Reply settings</CardTitle>
                 <CardDescription>
-                  Choose a goal, add details, and tune directness for inbound DM replies.
+                  System prompt knowledge plus conversation goals for inbound DM replies.
                 </CardDescription>
               </div>
               {automationMissing && <Badge variant="destructive">Required for replies</Badge>}
@@ -105,9 +106,10 @@ export function OrgDashboardPage() {
           <CardContent>
             <OrgPromptForm
               token={token}
-              publishedGoal={org.conversationGoal}
-              initialDraftGoal={resolveDraftGoal(org)}
-              legacyPublishedPrompt={org.systemPrompt}
+              publishedGoals={resolvePublishedGoals(org)}
+              initialDraftGoals={resolveDraftGoals(org)}
+              publishedSystemPrompt={org.systemPrompt}
+              initialDraftSystemPrompt={org.draftSystemPrompt ?? org.systemPrompt ?? ""}
               publishedModel={org.llmModel}
               initialDraftModel={org.draftLlmModel ?? org.llmModel}
               hasUnpublishedDraft={org.hasUnpublishedDraft}

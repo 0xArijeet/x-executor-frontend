@@ -18,7 +18,11 @@ export type Organization = {
   slug?: string;
   systemPrompt?: string;
   draftSystemPrompt?: string;
+  conversationGoals?: ConversationGoalsConfig;
+  draftConversationGoals?: ConversationGoalsConfig;
+  /** @deprecated Legacy single goal from older API responses */
   conversationGoal?: ConversationGoal;
+  /** @deprecated Legacy single goal draft from older API responses */
   draftConversationGoal?: ConversationGoal;
   hasUnpublishedDraft?: boolean;
   promptPublishedAt?: string;
@@ -40,6 +44,13 @@ export type ConversationGoalType =
   | "drive_traffic"
   | "custom";
 
+export type ConversationGoalsConfig = {
+  types: ConversationGoalType[];
+  details: string;
+  directness: number;
+};
+
+/** @deprecated Legacy single goal shape */
 export type ConversationGoal = {
   type: ConversationGoalType;
   details: string;
@@ -101,9 +112,10 @@ export type UpdatePromptInput = {
 };
 
 export type UpdateConversationGoalInput = {
-  goalType: ConversationGoalType;
+  goalTypes: ConversationGoalType[];
   goalDetails: string;
   directness: number;
+  systemPrompt?: string;
   llmModel?: string;
 };
 

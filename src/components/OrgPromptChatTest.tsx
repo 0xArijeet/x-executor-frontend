@@ -9,14 +9,14 @@ import { useState, type FormEvent } from "react";
 
 type OrgPromptChatTestProps = {
   token: string;
-  goalConfigured: boolean;
+  replyConfigured: boolean;
   llmModel: string;
   hasLocalChanges?: boolean;
 };
 
 export function OrgPromptChatTest({
   token,
-  goalConfigured,
+  replyConfigured,
   llmModel,
   hasLocalChanges = false,
 }: OrgPromptChatTestProps) {
@@ -26,7 +26,7 @@ export function OrgPromptChatTest({
   const [result, setResult] = useState<ChatTestResponse | null>(null);
 
   const canTest =
-    goalConfigured && !hasLocalChanges && userMessage.trim().length > 0 && !testing;
+    replyConfigured && !hasLocalChanges && userMessage.trim().length > 0 && !testing;
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -51,9 +51,9 @@ export function OrgPromptChatTest({
   return (
     <div className="border-t border-border pt-4 space-y-4">
       <div>
-        <p className="text-sm font-medium text-foreground">Test conversation goal</p>
+        <p className="text-sm font-medium text-foreground">Test reply settings</p>
         <p className="text-xs text-muted-foreground mt-1">
-          Send a sample DM using the saved draft goal and model above.
+          Send a sample DM using the saved system prompt, goals, and model above.
         </p>
       </div>
 
@@ -68,7 +68,7 @@ export function OrgPromptChatTest({
             value={userMessage}
             onChange={e => setUserMessage(e.target.value)}
             placeholder="What chains do you support?"
-            disabled={!goalConfigured || hasLocalChanges}
+            disabled={!replyConfigured || hasLocalChanges}
           />
         </div>
 
@@ -76,12 +76,12 @@ export function OrgPromptChatTest({
           {testing ? "Testing…" : "Send test"}
         </Button>
 
-        {!goalConfigured && (
+        {!replyConfigured && (
           <p className="text-xs text-muted-foreground">
-            Enter goal details and save a draft to enable testing.
+            Add a system prompt and/or goal details, then save a draft to enable testing.
           </p>
         )}
-        {goalConfigured && hasLocalChanges && (
+        {replyConfigured && hasLocalChanges && (
           <p className="text-xs text-muted-foreground">
             Save your draft first — tests use the saved draft on the server.
           </p>

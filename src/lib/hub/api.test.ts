@@ -99,27 +99,30 @@ test("xSettingsApi.updateGoal PATCHes conversation goal", async () => {
     expect(String(input)).toContain("/api/hub/x/settings/goal");
     expect(init?.method).toBe("PATCH");
     expect(JSON.parse(String(init?.body))).toEqual({
-      goalType: "grow_discord",
+      goalTypes: ["grow_discord", "book_a_call"],
       goalDetails: "Invite people to our Discord.",
       directness: 50,
+      systemPrompt: "We sell blue widgets.",
       llmModel: "google/gemini-3.5-flash",
     });
     return jsonResponse({
       id: "org-1",
-      conversationGoal: {
-        type: "grow_discord",
+      conversationGoals: {
+        types: ["grow_discord", "book_a_call"],
         details: "Invite people to our Discord.",
         directness: 50,
       },
+      draftSystemPrompt: "We sell blue widgets.",
       hasUnpublishedDraft: true,
     });
   });
   globalThis.fetch = fetchMock as typeof fetch;
 
   const result = await xSettingsApi.updateGoal("jwt-test", {
-    goalType: "grow_discord",
+    goalTypes: ["grow_discord", "book_a_call"],
     goalDetails: "Invite people to our Discord.",
     directness: 50,
+    systemPrompt: "We sell blue widgets.",
     llmModel: "google/gemini-3.5-flash",
   });
   expect(result.hasUnpublishedDraft).toBe(true);
