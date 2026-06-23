@@ -64,13 +64,28 @@ export function resolveGoalOptionIdFromDetails(details: string): GoalOptionId | 
   return match?.id ?? null;
 }
 
-export function isGoalConfigured(selectedGoalId: GoalOptionId | null): boolean {
-  return selectedGoalId !== null;
+export function isGoalConfigured(goalTemplateText: string): boolean {
+  return goalTemplateText.trim().length > 0;
+}
+
+export function buildGoalsConfigFromTemplate(templateText: string): ConversationGoalsConfig {
+  const details = templateText.trim();
+  if (!details) {
+    return { ...DEFAULT_CONVERSATION_GOALS };
+  }
+  return {
+    types: ["custom"],
+    details,
+  };
 }
 
 export function buildGoalsConfigFromSelectedGoal(
   selectedGoalId: GoalOptionId | null,
+  templateText?: string,
 ): ConversationGoalsConfig {
+  if (templateText !== undefined) {
+    return buildGoalsConfigFromTemplate(templateText);
+  }
   if (!selectedGoalId) {
     return { ...DEFAULT_CONVERSATION_GOALS };
   }
@@ -78,10 +93,7 @@ export function buildGoalsConfigFromSelectedGoal(
   if (!option) {
     return { ...DEFAULT_CONVERSATION_GOALS };
   }
-  return {
-    types: ["custom"],
-    details: buildGoalText(option),
-  };
+  return buildGoalsConfigFromTemplate(buildGoalText(option));
 }
 
 function isLegacyGoal(value: unknown): value is ConversationGoal {
@@ -215,18 +227,18 @@ export function hasPublishedReplyConfig(
 
 export function isReplyConfigDraftValid(
   systemPrompt: string,
-  selectedGoalId: GoalOptionId | null,
+  goalTemplateText: string,
 ): boolean {
   const hasPrompt = systemPrompt.trim().length > 0;
-  const hasGoal = isGoalConfigured(selectedGoalId);
+  const hasGoal = isGoalConfigured(goalTemplateText);
   return hasPrompt || hasGoal;
 }
 
 export function hasSavedReplyConfig(
   systemPrompt: string,
-  selectedGoalId: GoalOptionId | null,
+  goalTemplateText: string,
 ): boolean {
-  return isReplyConfigDraftValid(systemPrompt, selectedGoalId);
+  return isReplyConfigDraftValid(systemPrompt, goalTemplateText);
 }
 
 export function normalizeTeamMembersForSave(members: TeamMember[]): TeamMember[] {

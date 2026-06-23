@@ -19,8 +19,8 @@ import {
   DEFAULT_OUTREACH_STYLE,
   GOAL_OPTIONS,
   OUTREACH_STYLE_OPTIONS,
-  buildGoalsConfigFromSelectedGoal,
-  findGoalOptionById,
+  buildGoalText,
+  buildGoalsConfigFromTemplate,
   hasPublishedReplyConfig,
   hasSavedReplyConfig,
   isReplyConfigDraftValid,
@@ -104,6 +104,8 @@ export function OrgPromptForm({
   const [savedSelectedGoalId, setSavedSelectedGoalId] = useState<GoalOptionId | null>(() =>
     goalIdFromGoals(initialDraftGoals),
   );
+  const [goalTemplateText, setGoalTemplateText] = useState(initialDraftGoals.details);
+  const [savedGoalTemplateText, setSavedGoalTemplateText] = useState(initialDraftGoals.details);
   const [publishedGoalsState, setPublishedGoalsState] = useState<
     ConversationGoalsConfig | undefined
   >(publishedGoals);
@@ -156,6 +158,8 @@ export function OrgPromptForm({
     const nextGoalId = goalIdFromGoals(initialDraftGoals);
     setSelectedGoalId(nextGoalId);
     setSavedSelectedGoalId(nextGoalId);
+    setGoalTemplateText(initialDraftGoals.details);
+    setSavedGoalTemplateText(initialDraftGoals.details);
     setPublishedGoalsState(publishedGoals);
     setDraftSystemPrompt(initialDraftSystemPrompt);
     setSavedSystemPrompt(initialDraftSystemPrompt);
@@ -236,6 +240,8 @@ export function OrgPromptForm({
 
     setSelectedGoalId(nextGoalId);
     setSavedSelectedGoalId(nextGoalId);
+    setGoalTemplateText(nextDraftGoals.details);
+    setSavedGoalTemplateText(nextDraftGoals.details);
     setPublishedGoalsState(resolvePublishedGoals(org));
     setDraftSystemPrompt(nextDraftPrompt);
     setSavedSystemPrompt(nextDraftPrompt);
@@ -268,10 +274,9 @@ export function OrgPromptForm({
   const selectedModelLabel =
     modelOptions.find(option => option.id === draftModel)?.name ?? draftModel;
 
-  const selectedGoalOption = selectedGoalId ? findGoalOptionById(selectedGoalId) : undefined;
-
   const hasLocalChanges =
     selectedGoalId !== savedSelectedGoalId ||
+    goalTemplateText.trim() !== savedGoalTemplateText.trim() ||
     draftSystemPrompt.trim() !== savedSystemPrompt.trim() ||
     draftModel !== savedDraftModel ||
     draftBotName.trim() !== savedBotName.trim() ||
@@ -290,7 +295,7 @@ export function OrgPromptForm({
     serverUnpublished &&
     !saving &&
     !publishing &&
-    isReplyConfigDraftValid(savedSystemPrompt, savedSelectedGoalId);
+    isReplyConfigDraftValid(savedSystemPrompt, savedGoalTemplateText);
   const canDiscard =
     !hasLocalChanges && serverUnpublished && !saving && !publishing && !discarding;
   const busy = saving || publishing || discarding;
@@ -311,12 +316,16 @@ export function OrgPromptForm({
 
   async function onSaveDraft(e: FormEvent) {
     e.preventDefault();
-    if (!isReplyConfigDraftValid(draftSystemPrompt, selectedGoalId)) {
-      setError("Add a reference doc and/or select a conversation goal.");
+    if (!isReplyConfigDraftValid(draftSystemPrompt, goalTemplateText)) {
+      setError("Add a reference doc and/or enter a conversation goal.");
+      return;
+    }
+    if (selectedGoalId && !goalTemplateText.trim()) {
+      setError("Goal template is required when a goal is selected.");
       return;
     }
 
-    const goalsPayload = buildGoalsConfigFromSelectedGoal(selectedGoalId);
+    const goalsPayload = buildGoalsConfigFromTemplate(goalTemplateText);
 
     setError(null);
     setSuccess(null);
@@ -372,6 +381,7 @@ export function OrgPromptForm({
   }
 
   const promptRows = compact ? 4 : 5;
+  const goalTemplateRows = compact ? 3 : 4;
 
   return (
     <div className="flex flex-col gap-4">
@@ -460,7 +470,10 @@ export function OrgPromptForm({
                 size="sm"
                 variant={selectedGoalId === option.id ? "default" : "outline"}
                 disabled={busy}
-                onClick={() => setSelectedGoalId(option.id)}
+                onClick={() => {
+                  setSelectedGoalId(option.id);
+                  setGoalTemplateText(buildGoalText(option));
+                }}
               >
                 {option.label}
               </Button>
@@ -468,11 +481,19 @@ export function OrgPromptForm({
           </div>
         </div>
 
-        {selectedGoalOption && (
+        {(selectedGoalId !== null || goalTemplateText.trim().length > 0) && (
           <div className="space-y-2">
-            <Label>Goal template</Label>
-            <p className="rounded-md border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
-              {selectedGoalOption.template}
+            <Label htmlFor="goalTemplate">Goal template</Label>
+            <Textarea
+              id="goalTemplate"
+              rows={goalTemplateRows}
+              value={goalTemplateText}
+              onChange={e => setGoalTemplateText(e.target.value)}
+              placeholder="Describe what the agent should work toward in conversations."
+              disabled={busy}
+            />
+            <p className="text-xs text-muted-foreground">
+              Starts from the preset above — edit freely to match your product and tone.
             </p>
           </div>
         )}
@@ -589,7 +610,7 @@ export function OrgPromptForm({
 
       <OrgPromptChatTest
         token={token}
-        replyConfigured={hasSavedReplyConfig(savedSystemPrompt, savedSelectedGoalId)}
+        replyConfigured={hasSavedReplyConfig(savedSystemPrompt, savedGoalTemplateText)}
         llmModel={draftModel}
         hasLocalChanges={hasLocalChanges}
       />

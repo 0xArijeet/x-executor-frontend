@@ -3,6 +3,7 @@ import {
   GOAL_OPTIONS,
   buildGoalText,
   buildGoalsConfigFromSelectedGoal,
+  buildGoalsConfigFromTemplate,
   isReplyConfigDraftValid,
   migrateDirectnessToOutreachStyle,
   normalizeGoalsConfig,
@@ -54,7 +55,25 @@ describe("conversation-goal helpers", () => {
     expect(resolveGoalOptionIdFromDetails("unknown goal text")).toBeNull();
   });
 
-  it("buildGoalsConfigFromSelectedGoal saves as custom with template", () => {
+  it("buildGoalsConfigFromTemplate saves trimmed custom goal text", () => {
+    expect(buildGoalsConfigFromTemplate("  Custom goal text  ")).toEqual({
+      types: ["custom"],
+      details: "Custom goal text",
+    });
+    expect(buildGoalsConfigFromTemplate("   ")).toEqual({
+      types: [],
+      details: "",
+    });
+  });
+
+  it("buildGoalsConfigFromSelectedGoal uses explicit template when provided", () => {
+    expect(buildGoalsConfigFromSelectedGoal("intro", "Edited intro goal")).toEqual({
+      types: ["custom"],
+      details: "Edited intro goal",
+    });
+  });
+
+  it("buildGoalsConfigFromSelectedGoal saves preset template by default", () => {
     expect(buildGoalsConfigFromSelectedGoal("intro")).toEqual({
       types: ["custom"],
       details: GOAL_OPTIONS.find(option => option.id === "intro")!.template,
@@ -65,9 +84,9 @@ describe("conversation-goal helpers", () => {
     });
   });
 
-  it("isReplyConfigDraftValid accepts reference doc or goal preset", () => {
-    expect(isReplyConfigDraftValid("Reference doc", null)).toBe(true);
-    expect(isReplyConfigDraftValid("", "demo")).toBe(true);
-    expect(isReplyConfigDraftValid("", null)).toBe(false);
+  it("isReplyConfigDraftValid accepts reference doc or goal template", () => {
+    expect(isReplyConfigDraftValid("Reference doc", "")).toBe(true);
+    expect(isReplyConfigDraftValid("", "Custom goal")).toBe(true);
+    expect(isReplyConfigDraftValid("", "")).toBe(false);
   });
 });
