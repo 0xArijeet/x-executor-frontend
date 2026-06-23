@@ -12,6 +12,32 @@ import { campaignsApi } from "@/lib/hub/api";
 import type { CampaignFollower, CampaignStatusResponse } from "@/lib/hub/types";
 import { useCallback, useEffect, useState } from "react";
 
+function FollowerAvatar({
+  userName,
+  profilePictureUrl,
+}: {
+  userName: string;
+  profilePictureUrl?: string;
+}) {
+  if (profilePictureUrl) {
+    return (
+      <img
+        src={profilePictureUrl}
+        alt=""
+        className="h-8 w-8 rounded-full object-cover bg-muted"
+        loading="lazy"
+        referrerPolicy="no-referrer"
+      />
+    );
+  }
+
+  return (
+    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-medium uppercase">
+      {userName.slice(0, 1)}
+    </div>
+  );
+}
+
 type CampaignFollowerAudienceProps = {
   token: string;
   campaignId: string;
@@ -189,6 +215,7 @@ export function CampaignFollowerAudience({
                 <table className="min-w-full text-sm">
                   <thead className="bg-muted/40 text-left">
                     <tr>
+                      <th className="px-3 py-2 w-10" aria-label="Avatar" />
                       <th className="px-3 py-2">User</th>
                       <th className="px-3 py-2">Name</th>
                       <th className="px-3 py-2">Can DM</th>
@@ -198,6 +225,12 @@ export function CampaignFollowerAudience({
                   <tbody>
                     {followers.map(follower => (
                       <tr key={follower.id} className="border-t border-border">
+                        <td className="px-3 py-2">
+                          <FollowerAvatar
+                            userName={follower.userName}
+                            profilePictureUrl={follower.profilePictureUrl}
+                          />
+                        </td>
                         <td className="px-3 py-2 font-mono">@{follower.userName}</td>
                         <td className="px-3 py-2">{follower.name}</td>
                         <td className="px-3 py-2">

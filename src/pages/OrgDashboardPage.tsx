@@ -1,5 +1,6 @@
 import { ErrorAlert, errorMessage } from "@/components/ErrorAlert";
 import { ConnectionAdminPanel } from "@/components/ConnectionAdminPanel";
+import { ConnectionAvatar } from "@/components/ConnectionAvatar";
 import { ConnectionStatusBadges } from "@/components/ConnectionStatusBadges";
 import { OrgPromptForm } from "@/components/OrgPromptForm";
 import { Badge } from "@/components/ui/badge";
@@ -145,11 +146,23 @@ export function OrgDashboardPage() {
             <Card key={conn.id}>
               <CardHeader>
                 <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <CardTitle className="text-lg">@{conn.xUsername}</CardTitle>
-                    <CardDescription>
-                      Connected {conn.connectedAt ? new Date(conn.connectedAt).toLocaleString() : "—"}
-                    </CardDescription>
+                  <div className="flex items-start gap-3">
+                    <ConnectionAvatar
+                      userName={conn.xUsername}
+                      displayName={conn.displayName}
+                      profilePictureUrl={conn.profilePictureUrl}
+                    />
+                    <div>
+                      <CardTitle className="text-lg">
+                        {conn.displayName ?? `@${conn.xUsername}`}
+                      </CardTitle>
+                      <CardDescription>
+                        @{conn.xUsername}
+                        {conn.connectedAt
+                          ? ` · Connected ${new Date(conn.connectedAt).toLocaleString()}`
+                          : ""}
+                      </CardDescription>
+                    </div>
                   </div>
                   <ConnectionStatusBadges connection={conn} />
                 </div>

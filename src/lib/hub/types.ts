@@ -92,13 +92,22 @@ export type Connection = {
   id: string;
   xUserId: string;
   xUsername: string;
+  displayName?: string;
+  profilePictureUrl?: string;
   scopes: string[];
   connectedAt: string;
   tokenExpiresAt?: string;
   webhookUrl?: string;
   subscribed?: boolean;
   hasAuthToken: boolean;
+  authTokenInvalid?: boolean;
+  authTokenRequired?: boolean;
   hasXchatPin: boolean;
+};
+
+export type ValidateConnectionResponse = {
+  valid: boolean;
+  error?: string;
 };
 
 export type CreateInviteInput = {
@@ -239,6 +248,7 @@ export type CampaignStatusResponse = {
   syncedFollowerCount?: number;
   canDmFollowerCount?: number;
   syncError?: string;
+  pauseReason?: string;
   messageText: string;
   targetUsernames: string[];
   totalTargets: number;
@@ -279,7 +289,7 @@ export type CampaignFollower = {
   name: string;
   canDm: boolean;
   selected: boolean;
-  profilePicture?: string;
+  profilePictureUrl?: string;
   description?: string;
   followers?: number;
   following?: number;

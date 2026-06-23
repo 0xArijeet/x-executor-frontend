@@ -24,6 +24,7 @@ import type {
   UpdateCampaignNameResponse,
   PaginatedConversationsResponse,
   PaginatedMessagesResponse,
+  ValidateConnectionResponse,
 } from "./types";
 
 export const authApi = {
@@ -156,6 +157,26 @@ export const connectionsApi = {
       method: "DELETE",
       token,
     });
+  },
+  validateAuthToken(token: string, connectionId: string, authToken?: string) {
+    return hubFetch<ValidateConnectionResponse>(
+      `/x/connections/${encodeURIComponent(connectionId)}/validate-auth-token`,
+      {
+        method: "POST",
+        token,
+        body: JSON.stringify(authToken ? { authToken } : {}),
+      },
+    );
+  },
+  validateXchatPin(token: string, connectionId: string, xchatPin?: string) {
+    return hubFetch<ValidateConnectionResponse>(
+      `/x/connections/${encodeURIComponent(connectionId)}/validate-xchat-pin`,
+      {
+        method: "POST",
+        token,
+        body: JSON.stringify(xchatPin ? { xchatPin } : {}),
+      },
+    );
   },
 };
 

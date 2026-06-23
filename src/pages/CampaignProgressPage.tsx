@@ -209,6 +209,14 @@ export function CampaignProgressPage() {
 
       <ErrorAlert error={error} />
 
+      {campaign.status === "paused" && campaign.pauseReason && (
+        <Card className="mb-6 border-amber-500/40">
+          <CardContent className="py-4 text-sm text-muted-foreground">
+            <strong className="text-foreground">Campaign paused.</strong> {campaign.pauseReason}
+          </CardContent>
+        </Card>
+      )}
+
       {followerCounts && (
         <Card className="mb-6">
           <CardHeader className="pb-3">

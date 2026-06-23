@@ -1,4 +1,5 @@
 import { CampaignScheduleSection } from "@/components/CampaignScheduleSection";
+import { ConnectionAvatar } from "@/components/ConnectionAvatar";
 import { ErrorAlert, errorMessage } from "@/components/ErrorAlert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -235,8 +236,21 @@ export function CampaignCreateForm({ token, connections, onCreated }: CampaignCr
                     onChange={e => toggleConnection(connection.id, e.target.checked)}
                     className="h-4 w-4 rounded border-border"
                   />
+                  <ConnectionAvatar
+                    userName={connection.xUsername}
+                    displayName={connection.displayName}
+                    profilePictureUrl={connection.profilePictureUrl}
+                    size="sm"
+                  />
                   <span>
-                    @{connection.xUsername}
+                    {connection.displayName ? (
+                      <>
+                        {connection.displayName}{" "}
+                        <span className="text-muted-foreground">@{connection.xUsername}</span>
+                      </>
+                    ) : (
+                      `@${connection.xUsername}`
+                    )}
                     {!connection.hasXchatPin && (
                       <span className="ml-2 text-xs text-muted-foreground">
                         (no XChat PIN)

@@ -24,8 +24,12 @@ export function ConnectionAdminPanel({
   const [xchatPin, setXchatPin] = useState("");
   const [savingToken, setSavingToken] = useState(false);
   const [savingPin, setSavingPin] = useState(false);
+  const [validatingToken, setValidatingToken] = useState(false);
+  const [validatingPin, setValidatingPin] = useState(false);
   const [tokenSaved, setTokenSaved] = useState(false);
   const [pinSaved, setPinSaved] = useState(false);
+  const [tokenValidationMessage, setTokenValidationMessage] = useState<string | null>(null);
+  const [pinValidationMessage, setPinValidationMessage] = useState<string | null>(null);
 
   async function handleSaveAuthToken() {
     const value = authToken.trim();
@@ -37,11 +41,39 @@ export function ConnectionAdminPanel({
       setAuthToken("");
       setTokenSaved(true);
       setPinSaved(false);
+      setTokenValidationMessage(null);
       onUpdated();
     } catch (err) {
       onError(errorMessage(err));
     } finally {
       setSavingToken(false);
+    }
+  }
+
+  async function handleValidateAuthToken() {
+    onError(null);
+    setValidatingToken(true);
+    setTokenValidationMessage(null);
+    try {
+      const result = await connectionsApi.validateAuthToken(
+        token,
+        connectionId,
+        authToken.trim() || undefined,
+      );
+      if (result.valid) {
+        setTokenValidationMessage("Auth token is valid.");
+        if (authToken.trim()) {
+          setAuthToken("");
+          setTokenSaved(true);
+        }
+        onUpdated();
+      } else {
+        setTokenValidationMessage(result.error ?? "Auth token is invalid.");
+      }
+    } catch (err) {
+      onError(errorMessage(err));
+    } finally {
+      setValidatingToken(false);
     }
   }
 
@@ -57,11 +89,38 @@ export function ConnectionAdminPanel({
       setXchatPin("");
       setPinSaved(true);
       setTokenSaved(false);
+      setPinValidationMessage(null);
       onUpdated();
     } catch (err) {
       onError(errorMessage(err));
     } finally {
       setSavingPin(false);
+    }
+  }
+
+  async function handleValidateXchatPin() {
+    if (xchatPin && !XCHAT_PIN_PATTERN.test(xchatPin)) {
+      onError("XChat PIN must be 4–8 digits.");
+      return;
+    }
+    onError(null);
+    setValidatingPin(true);
+    setPinValidationMessage(null);
+    try {
+      const result = await connectionsApi.validateXchatPin(
+        token,
+        connectionId,
+        xchatPin || undefined,
+      );
+      if (result.valid) {
+        setPinValidationMessage("XChat PIN is valid.");
+      } else {
+        setPinValidationMessage(result.error ?? "XChat PIN is invalid.");
+      }
+    } catch (err) {
+      onError(errorMessage(err));
+    } finally {
+      setValidatingPin(false);
     }
   }
 
@@ -85,15 +144,35 @@ export function ConnectionAdminPanel({
             onChange={e => {
               setAuthToken(e.target.value);
               setTokenSaved(false);
+              setTokenValidationMessage(null);
             }}
             className="max-w-md"
           />
           <Button size="sm" disabled={!authToken.trim() || savingToken} onClick={handleSaveAuthToken}>
             {savingToken ? "Saving…" : "Save auth token"}
           </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={validatingToken}
+            onClick={handleValidateAuthToken}
+          >
+            {validatingToken ? "Validating…" : "Validate"}
+          </Button>
         </div>
         {tokenSaved && (
           <p className="text-xs text-green-600 dark:text-green-500">Auth token saved. Badge updates after refresh.</p>
+        )}
+        {tokenValidationMessage && (
+          <p
+            className={`text-xs ${
+              tokenValidationMessage.endsWith("valid.")
+                ? "text-green-600 dark:text-green-500"
+                : "text-destructive"
+            }`}
+          >
+            {tokenValidationMessage}
+          </p>
         )}
       </div>
 
@@ -115,15 +194,35 @@ export function ConnectionAdminPanel({
             onChange={e => {
               setXchatPin(e.target.value.replace(/\D/g, ""));
               setPinSaved(false);
+              setPinValidationMessage(null);
             }}
             className="max-w-[140px]"
           />
           <Button size="sm" disabled={!pinValid || savingPin} onClick={handleSaveXchatPin}>
             {savingPin ? "Saving…" : "Save XChat PIN"}
           </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={validatingPin || (Boolean(xchatPin) && !pinValid)}
+            onClick={handleValidateXchatPin}
+          >
+            {validatingPin ? "Validating…" : "Validate"}
+          </Button>
         </div>
         {pinSaved && (
           <p className="text-xs text-green-600 dark:text-green-500">XChat PIN saved. Encrypted on Hub; not kept in this browser.</p>
+        )}
+        {pinValidationMessage && (
+          <p
+            className={`text-xs ${
+              pinValidationMessage.endsWith("valid.")
+                ? "text-green-600 dark:text-green-500"
+                : "text-destructive"
+            }`}
+          >
+            {pinValidationMessage}
+          </p>
         )}
       </div>
     </div>

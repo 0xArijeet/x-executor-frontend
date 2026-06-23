@@ -11,6 +11,8 @@ export function ConnectionStatusBadges({ connection }: { connection: Connection 
       )}
       {connection.hasAuthToken ? (
         <Badge variant="secondary">Auth token</Badge>
+      ) : connection.authTokenInvalid ? (
+        <Badge variant="destructive">Auth token invalid</Badge>
       ) : (
         <Badge variant="destructive">Auth token required</Badge>
       )}
