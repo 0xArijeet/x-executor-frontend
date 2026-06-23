@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { isAdmin, useOrgRole } from "@/lib/auth/RequireOrgRole";
 import { useAuth } from "@/lib/auth/AuthContext";
-import { hasPublishedReplyConfig, resolveDraftGoals, resolvePublishedGoals } from "@/lib/conversation-goal";
+import { hasPublishedReplyConfig, resolveDraftGoals, resolveDraftBotName, resolveDraftEscalationContact, resolveDraftOutreachStyle, resolveDraftTeamMembers, resolvePublishedGoals } from "@/lib/conversation-goal";
 import { connectionsApi, xSettingsApi } from "@/lib/hub/api";
 import type { Connection, Organization } from "@/lib/hub/types";
 import { useEffect, useState } from "react";
@@ -113,6 +113,14 @@ export function OrgDashboardPage() {
               initialDraftSystemPrompt={org.draftSystemPrompt ?? org.systemPrompt ?? ""}
               publishedModel={org.llmModel}
               initialDraftModel={org.draftLlmModel ?? org.llmModel}
+              publishedBotName={org.botName}
+              initialDraftBotName={resolveDraftBotName(org)}
+              publishedOutreachStyle={org.outreachStyle}
+              initialDraftOutreachStyle={resolveDraftOutreachStyle(org)}
+              publishedTeamMembers={org.teamMembers}
+              initialDraftTeamMembers={resolveDraftTeamMembers(org)}
+              publishedEscalationContact={org.escalationContact}
+              initialDraftEscalationContact={resolveDraftEscalationContact(org)}
               hasUnpublishedDraft={org.hasUnpublishedDraft}
               promptPublishedAt={org.promptPublishedAt}
               onUpdated={setOrg}

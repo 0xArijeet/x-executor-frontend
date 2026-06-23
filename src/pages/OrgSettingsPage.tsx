@@ -2,7 +2,7 @@ import { ErrorAlert, errorMessage } from "@/components/ErrorAlert";
 import { OrgPromptForm } from "@/components/OrgPromptForm";
 import { OrgHandoffForm } from "@/components/OrgHandoffForm";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { resolveDraftGoals, resolvePublishedGoals } from "@/lib/conversation-goal";
+import { resolveDraftGoals, resolveDraftBotName, resolveDraftEscalationContact, resolveDraftOutreachStyle, resolveDraftTeamMembers, resolvePublishedGoals } from "@/lib/conversation-goal";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { xSettingsApi } from "@/lib/hub/api";
 import type { Organization } from "@/lib/hub/types";
@@ -39,8 +39,7 @@ export function OrgSettingsPage() {
         <CardHeader>
           <CardTitle className="text-lg">Conversation goal</CardTitle>
           <CardDescription>
-            Configure goal type, details, directness, and optional system prompt for inbound DM
-            replies.
+            Configure outreach style, bot identity, goals, and reference doc for inbound DM replies.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -53,6 +52,14 @@ export function OrgSettingsPage() {
               initialDraftSystemPrompt={org.draftSystemPrompt ?? org.systemPrompt ?? ""}
               publishedModel={org.llmModel}
               initialDraftModel={org.draftLlmModel ?? org.llmModel}
+              publishedBotName={org.botName}
+              initialDraftBotName={resolveDraftBotName(org)}
+              publishedOutreachStyle={org.outreachStyle}
+              initialDraftOutreachStyle={resolveDraftOutreachStyle(org)}
+              publishedTeamMembers={org.teamMembers}
+              initialDraftTeamMembers={resolveDraftTeamMembers(org)}
+              publishedEscalationContact={org.escalationContact}
+              initialDraftEscalationContact={resolveDraftEscalationContact(org)}
               hasUnpublishedDraft={org.hasUnpublishedDraft}
               promptPublishedAt={org.promptPublishedAt}
               onUpdated={setOrg}
@@ -65,8 +72,8 @@ export function OrgSettingsPage() {
         <CardHeader>
           <CardTitle className="text-lg">Bot-to-agent handoff</CardTitle>
           <CardDescription>
-            Classify inbound DMs with the LLM and notify a team member on X when a human should take
-            over. changes take effect immediately after save.
+            Handoff routing rules for silent team notifications when the outreach agent skips a
+            reply. Changes take effect immediately after save.
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -51,9 +51,9 @@ export function OrgPromptChatTest({
   return (
     <div className="border-t border-border pt-4 space-y-4">
       <div>
-        <p className="text-sm font-medium text-foreground">Test reply settings</p>
+        <p className="text-sm font-medium text-foreground">Test outreach agent</p>
         <p className="text-xs text-muted-foreground mt-1">
-          Send a sample DM using the saved system prompt, goals, and model above.
+          Send a sample DM using the saved reference doc, goals, and outreach settings.
         </p>
       </div>
 
@@ -78,7 +78,7 @@ export function OrgPromptChatTest({
 
         {!replyConfigured && (
           <p className="text-xs text-muted-foreground">
-            Add a system prompt and/or goal details, then save a draft to enable testing.
+            Add a reference doc and/or goal details, then save a draft to enable testing.
           </p>
         )}
         {replyConfigured && hasLocalChanges && (
@@ -91,12 +91,31 @@ export function OrgPromptChatTest({
       {result && (
         <div className="rounded-md border border-border bg-muted/30 p-3 space-y-2 text-sm">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-medium text-muted-foreground">Bot reply</span>
-            <Badge variant={result.isKnownAnswer ? "outline" : "secondary"}>
-              {result.isKnownAnswer ? "In scope" : "Out of scope"}
+            <span className="text-xs font-medium text-muted-foreground">Agent decision</span>
+            <Badge variant={result.action === "reply" ? "outline" : "secondary"}>
+              {result.action === "reply" ? "Reply" : "Skip (silent)"}
             </Badge>
+            {result.notifyTeam && <Badge variant="destructive">Notify team</Badge>}
           </div>
-          <p className="whitespace-pre-wrap text-foreground">{result.reply || "—"}</p>
+
+          {result.action === "reply" ? (
+            <p className="whitespace-pre-wrap text-foreground">{result.message || "—"}</p>
+          ) : (
+            <div className="space-y-1 text-muted-foreground">
+              <p>No user-facing DM would be sent.</p>
+              {result.handoffSummary && (
+                <p>
+                  <span className="font-medium text-foreground">Handoff summary:</span>{" "}
+                  {result.handoffSummary}
+                </p>
+              )}
+              {result.handoffTo && (
+                <p>
+                  <span className="font-medium text-foreground">Route to:</span> @{result.handoffTo}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

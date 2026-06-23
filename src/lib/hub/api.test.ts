@@ -145,18 +145,21 @@ test("xSettingsApi.updateGoal PATCHes conversation goal", async () => {
     expect(JSON.parse(String(init?.body))).toEqual({
       goalTypes: ["grow_discord", "book_a_call"],
       goalDetails: "Invite people to our Discord.",
-      directness: 50,
+      outreachStyle: "subtle",
+      botName: "Noah AI",
+      teamMembers: [{ username: "alice", role: "Sales" }],
+      escalationContact: "the team",
       systemPrompt: "We sell blue widgets.",
-      llmModel: "google/gemini-3.5-flash",
+      llmModel: "anthropic/claude-haiku-4-5",
     });
     return jsonResponse({
       id: "org-1",
       conversationGoals: {
         types: ["grow_discord", "book_a_call"],
         details: "Invite people to our Discord.",
-        directness: 50,
       },
       draftSystemPrompt: "We sell blue widgets.",
+      outreachStyle: "subtle",
       hasUnpublishedDraft: true,
     });
   });
@@ -165,9 +168,12 @@ test("xSettingsApi.updateGoal PATCHes conversation goal", async () => {
   const result = await xSettingsApi.updateGoal("jwt-test", {
     goalTypes: ["grow_discord", "book_a_call"],
     goalDetails: "Invite people to our Discord.",
-    directness: 50,
+    outreachStyle: "subtle",
+    botName: "Noah AI",
+    teamMembers: [{ username: "alice", role: "Sales" }],
+    escalationContact: "the team",
     systemPrompt: "We sell blue widgets.",
-    llmModel: "google/gemini-3.5-flash",
+    llmModel: "anthropic/claude-haiku-4-5",
   });
   expect(result.hasUnpublishedDraft).toBe(true);
 });
@@ -176,7 +182,11 @@ test("xSettingsApi.testChat POSTs chat test", async () => {
   const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
     expect(String(input)).toContain("/api/hub/x/settings/chat/test");
     expect(init?.method).toBe("POST");
-    return jsonResponse({ reply: "Hi", isKnownAnswer: true });
+    return jsonResponse({
+      action: "reply",
+      message: "Hi",
+      notifyTeam: false,
+    });
   });
   globalThis.fetch = fetchMock as typeof fetch;
 
@@ -184,7 +194,8 @@ test("xSettingsApi.testChat POSTs chat test", async () => {
     userMessage: "Hello",
     llmModel: "google/gemini-3.5-flash",
   });
-  expect(result.reply).toBe("Hi");
+  expect(result.action).toBe("reply");
+  expect(result.message).toBe("Hi");
 });
 
 test("xSettingsApi.publishPrompt POSTs prompt publish", async () => {

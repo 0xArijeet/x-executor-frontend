@@ -3,13 +3,23 @@ import type {
   ConversationGoalsConfig,
   ConversationGoalType,
   Organization,
+  OutreachStyle,
+  TeamMember,
 } from "@/lib/hub/types";
 
 export const DEFAULT_CONVERSATION_GOALS: ConversationGoalsConfig = {
   types: [],
   details: "",
-  directness: 50,
 };
+
+export const DEFAULT_BOT_NAME = "Noah AI";
+export const DEFAULT_ESCALATION_CONTACT = "the team";
+export const DEFAULT_OUTREACH_STYLE: OutreachStyle = "subtle";
+
+export const OUTREACH_STYLE_OPTIONS: Array<{ value: OutreachStyle; label: string }> = [
+  { value: "subtle", label: "Subtle" },
+  { value: "assertive", label: "Assertive" },
+];
 
 export const GOAL_TYPE_OPTIONS: Array<{ value: ConversationGoalType; label: string }> = [
   { value: "product_signups", label: "Product sign-ups" },
@@ -21,16 +31,14 @@ export const GOAL_TYPE_OPTIONS: Array<{ value: ConversationGoalType; label: stri
   { value: "custom", label: "Custom" },
 ];
 
-export function directnessLabel(value: number): string {
-  if (value <= 33) return "Subtle";
-  if (value <= 66) return "Balanced";
-  return "Direct";
-}
-
 function isLegacyGoal(value: unknown): value is ConversationGoal {
   if (!value || typeof value !== "object") return false;
   const record = value as Record<string, unknown>;
   return typeof record.type === "string" && !Array.isArray(record.types);
+}
+
+export function migrateDirectnessToOutreachStyle(directness: number): OutreachStyle {
+  return directness <= 50 ? "subtle" : "assertive";
 }
 
 export function normalizeGoalsConfig(
@@ -43,7 +51,6 @@ export function normalizeGoalsConfig(
     config = {
       types: [raw.type],
       details: raw.details,
-      directness: raw.directness,
     };
   } else {
     config = raw;
@@ -53,7 +60,7 @@ export function normalizeGoalsConfig(
   const details = config.details.trim();
   if (types.length === 0 || !details) return undefined;
 
-  return { types, details, directness: config.directness };
+  return { types, details };
 }
 
 export function goalsConfigEqual(
@@ -62,11 +69,19 @@ export function goalsConfigEqual(
 ): boolean {
   const leftTypes = [...left.types].sort().join(",");
   const rightTypes = [...right.types].sort().join(",");
-  return (
-    leftTypes === rightTypes &&
-    left.details.trim() === right.details.trim() &&
-    left.directness === right.directness
-  );
+  return leftTypes === rightTypes && left.details.trim() === right.details.trim();
+}
+
+export function teamMembersEqual(left: TeamMember[], right: TeamMember[]): boolean {
+  if (left.length !== right.length) return false;
+  return left.every((member, index) => {
+    const other = right[index];
+    return (
+      member.username.trim().replace(/^@/, "") === other.username.trim().replace(/^@/, "") &&
+      (member.role ?? "") === (other.role ?? "") &&
+      (member.topics ?? "") === (other.topics ?? "")
+    );
+  });
 }
 
 export function resolveDraftGoals(
@@ -89,14 +104,12 @@ export function resolveDraftGoals(
     return {
       types: [raw.type],
       details: raw.details,
-      directness: raw.directness,
     };
   }
 
   return {
     types: [...raw.types],
     details: raw.details,
-    directness: raw.directness,
   };
 }
 
@@ -104,6 +117,41 @@ export function resolvePublishedGoals(
   org: Pick<Organization, "conversationGoals" | "conversationGoal">,
 ): ConversationGoalsConfig | undefined {
   return normalizeGoalsConfig(org.conversationGoals ?? org.conversationGoal);
+}
+
+export function resolveDraftOutreachStyle(org: Organization): OutreachStyle {
+  if (org.draftOutreachStyle) return org.draftOutreachStyle;
+  if (org.outreachStyle) return org.outreachStyle;
+
+  const legacy =
+    org.draftConversationGoals ??
+    org.conversationGoals ??
+    org.draftConversationGoal ??
+    org.conversationGoal;
+  if (legacy && typeof legacy === "object" && "directness" in legacy) {
+    const directness = (legacy as ConversationGoal).directness;
+    if (typeof directness === "number") {
+      return migrateDirectnessToOutreachStyle(directness);
+    }
+  }
+  return DEFAULT_OUTREACH_STYLE;
+}
+
+export function resolveDraftBotName(org: Organization): string {
+  return org.draftBotName ?? org.botName ?? DEFAULT_BOT_NAME;
+}
+
+export function resolveDraftTeamMembers(org: Organization): TeamMember[] {
+  const members = org.draftTeamMembers ?? org.teamMembers ?? [];
+  return members.map(member => ({
+    username: member.username.trim().replace(/^@/, ""),
+    role: member.role?.trim() || undefined,
+    topics: member.topics?.trim() || undefined,
+  }));
+}
+
+export function resolveDraftEscalationContact(org: Organization): string {
+  return org.draftEscalationContact ?? org.escalationContact ?? DEFAULT_ESCALATION_CONTACT;
 }
 
 export function hasPublishedReplyConfig(
@@ -132,4 +180,14 @@ export function toggleGoalType(
 
 export function hasSavedReplyConfig(systemPrompt: string, goals: ConversationGoalsConfig): boolean {
   return isReplyConfigDraftValid(systemPrompt, goals);
+}
+
+export function normalizeTeamMembersForSave(members: TeamMember[]): TeamMember[] {
+  return members
+    .map(member => ({
+      username: member.username.trim().replace(/^@/, ""),
+      role: member.role?.trim() || undefined,
+      topics: member.topics?.trim() || undefined,
+    }))
+    .filter(member => member.username.length > 0);
 }

@@ -11,6 +11,14 @@ export type AuthResponse = {
   user: User;
 };
 
+export type OutreachStyle = "subtle" | "assertive";
+
+export type TeamMember = {
+  username: string;
+  role?: string;
+  topics?: string;
+};
+
 export type Organization = {
   id: string;
   orgId?: string;
@@ -24,6 +32,14 @@ export type Organization = {
   conversationGoal?: ConversationGoal;
   /** @deprecated Legacy single goal draft from older API responses */
   draftConversationGoal?: ConversationGoal;
+  botName?: string;
+  draftBotName?: string;
+  outreachStyle?: OutreachStyle;
+  draftOutreachStyle?: OutreachStyle;
+  teamMembers?: TeamMember[];
+  draftTeamMembers?: TeamMember[];
+  escalationContact?: string;
+  draftEscalationContact?: string;
   hasUnpublishedDraft?: boolean;
   promptPublishedAt?: string;
   llmModel?: string;
@@ -47,14 +63,14 @@ export type ConversationGoalType =
 export type ConversationGoalsConfig = {
   types: ConversationGoalType[];
   details: string;
-  directness: number;
 };
 
 /** @deprecated Legacy single goal shape */
 export type ConversationGoal = {
   type: ConversationGoalType;
   details: string;
-  directness: number;
+  /** @deprecated Migrated to org-level outreachStyle */
+  directness?: number;
 };
 
 export type OrganizationWithRole = Organization & {
@@ -123,7 +139,10 @@ export type UpdatePromptInput = {
 export type UpdateConversationGoalInput = {
   goalTypes: ConversationGoalType[];
   goalDetails: string;
-  directness: number;
+  outreachStyle?: OutreachStyle;
+  botName?: string;
+  teamMembers?: TeamMember[];
+  escalationContact?: string;
   systemPrompt?: string;
   llmModel?: string;
 };
@@ -148,8 +167,11 @@ export type ChatTestInput = {
 };
 
 export type ChatTestResponse = {
-  reply: string;
-  isKnownAnswer: boolean;
+  action: "reply" | "skip";
+  message: string;
+  handoffSummary?: string;
+  handoffTo?: string;
+  notifyTeam: boolean;
 };
 
 export type CreateOrgInput = {

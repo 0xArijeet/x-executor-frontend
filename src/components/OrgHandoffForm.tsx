@@ -90,23 +90,23 @@ export function OrgHandoffForm({
           disabled={!enabled}
         />
         <p className="text-xs text-muted-foreground">
-          Free-text rules for when to hand off and which @handle to notify. The LLM uses these
-          instructions to classify inbound DMs.
+          Routing rules for silent handoffs. The outreach agent uses these when it skips a reply
+          and notifies a team member. No public handoff message is sent to the user.
         </p>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="handoffMessage">Reply to user (optional)</Label>
+        <Label htmlFor="handoffMessage">Reply to user (deprecated)</Label>
         <Input
           id="handoffMessage"
           value={message}
           onChange={e => setMessage(e.target.value)}
           placeholder={DEFAULT_HANDOFF_MESSAGE}
-          disabled={!enabled}
+          disabled
         />
         <p className="text-xs text-muted-foreground">
-          Message sent to the user when a handoff is triggered or while the conversation is locked
-          (24 hours). Leave blank to use the default.
+          Unused in live inbound replies. The agent stays silent on skip instead of sending this
+          message.
         </p>
       </div>
 
