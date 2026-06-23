@@ -115,7 +115,7 @@ export function CampaignsListPage() {
                 </p>
                 <Button asChild variant="outline" size="sm">
                   <Link to={`/orgs/${orgId}/campaigns/${campaign.id}`}>
-                    {campaign.status === "draft" ? "Select audience" : "View progress"}
+                    {campaign.status === "draft" ? "View campaign" : "View progress"}
                   </Link>
                 </Button>
               </CardContent>

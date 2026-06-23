@@ -31,8 +31,9 @@ export function CampaignCreatePage() {
       <div className="mb-6">
         <h1 className="text-2xl font-semibold">New campaign</h1>
         <p className="text-muted-foreground">
-          Send one message to many X users — from a manual list or synced followers. Sends respect your
-          schedule and are spread across connected accounts.
+          Send one message to many X users — from a manual list or synced followers. Follower
+          campaigns auto-start after sync. Sends respect your schedule and are spread across
+          connected accounts.
         </p>
       </div>
 

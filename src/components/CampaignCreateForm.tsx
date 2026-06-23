@@ -144,7 +144,7 @@ export function CampaignCreateForm({ token, connections, onCreated }: CampaignCr
         <p className="text-xs text-muted-foreground">
           {audienceType === "manual"
             ? "Provide usernames directly — campaign starts immediately."
-            : "Sync followers from a target account, select recipients, then start manually."}
+            : "Sync followers from a target account — DM-able prospects are included and the campaign starts automatically."}
         </p>
       </div>
 
@@ -282,7 +282,7 @@ export function CampaignCreateForm({ token, connections, onCreated }: CampaignCr
         {submitting
           ? "Creating…"
           : audienceType === "followers"
-            ? "Create & sync followers"
+            ? "Sync & start campaign"
             : "Launch campaign"}
       </Button>
     </form>

@@ -1,10 +1,11 @@
 import { CampaignFollowerAudience } from "@/components/CampaignFollowerAudience";
+import { FollowerSyncStats } from "@/components/FollowerSyncStats";
 import { ErrorAlert, errorMessage } from "@/components/ErrorAlert";
 import { CampaignStatusBadge } from "@/components/CampaignStatusBadge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { formatRelativeEta, canStopCampaign, isCampaignPolling } from "@/lib/campaign-utils";
+import { formatRelativeEta, canStopCampaign, isCampaignPolling, isFollowerSyncInProgress, resolveFollowerSyncCounts } from "@/lib/campaign-utils";
 import { CAMPAIGN_DAY_LABELS, minuteToTimeOption } from "@/lib/campaign-schedule";
 import { isAdmin, useOrgRole } from "@/lib/auth/RequireOrgRole";
 import { useAuth } from "@/lib/auth/AuthContext";
@@ -64,7 +65,9 @@ export function CampaignProgressPage() {
   useEffect(() => {
     if (!campaign) return;
     if (!isCampaignPolling(campaign.status, campaign.syncStatus)) return;
-    const id = setInterval(load, 15_000);
+    const intervalMs =
+      campaign.status === "syncing" || campaign.syncStatus === "syncing" ? 5_000 : 15_000;
+    const id = setInterval(load, intervalMs);
     return () => clearInterval(id);
   }, [campaign?.status, campaign?.syncStatus, token, orgId, campaignId]);
 
@@ -152,6 +155,8 @@ export function CampaignProgressPage() {
     campaign.status === "pending" ||
     campaign.status === "running" ||
     campaign.status === "paused";
+  const followerCounts =
+    campaign.audienceType === "followers" ? resolveFollowerSyncCounts(campaign) : null;
 
   return (
     <div>
@@ -204,12 +209,31 @@ export function CampaignProgressPage() {
 
       <ErrorAlert error={error} />
 
+      {followerCounts && (
+        <Card className="mb-6">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Follower sync</CardTitle>
+            <CardDescription>
+              {isFollowerSyncInProgress(campaign)
+                ? "Live counts while followers are fetched from X"
+                : "Final audience size for this campaign"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FollowerSyncStats
+              syncedSoFar={followerCounts.syncedSoFar}
+              reachableCount={followerCounts.reachableCount}
+              isSyncing={followerCounts.isSyncing}
+            />
+          </CardContent>
+        </Card>
+      )}
+
       {campaign.audienceType === "followers" && token && campaignId && (
         <CampaignFollowerAudience
           token={token}
           campaignId={campaignId}
           campaign={campaign}
-          admin={admin}
           onCampaignUpdated={load}
         />
       )}
@@ -285,9 +309,14 @@ export function CampaignProgressPage() {
         <CardHeader>
           <CardTitle className="text-lg">Delivery</CardTitle>
           <CardDescription>
-            {campaign.audienceType === "followers" && campaign.status === "draft"
-              ? "Select followers and start the campaign to begin delivery."
-              : `${processed} of ${campaign.totalTargets} processed`}
+            {campaign.audienceType === "followers" && isFollowerSyncInProgress(campaign)
+              ? "Syncing prospects — delivery starts automatically when sync completes."
+              : campaign.audienceType === "followers" &&
+                  campaign.syncStatus === "completed" &&
+                  campaign.status === "pending" &&
+                  campaign.totalTargets === 0
+                ? "Starting delivery…"
+                : `${processed} of ${campaign.totalTargets} processed`}
             {senderSummary ? ` · sending from ${senderSummary}` : ""}
             {eta && isActiveDelivery ? ` · ${eta}` : ""}
           </CardDescription>
@@ -350,8 +379,8 @@ export function CampaignProgressPage() {
         <CardHeader>
           <CardTitle className="text-lg">Message</CardTitle>
           <CardDescription>
-            {campaign.audienceType === "followers" && campaign.status === "draft"
-              ? "Message preview — targets set when you start"
+            {campaign.audienceType === "followers" && isFollowerSyncInProgress(campaign)
+              ? "Message preview — targets set automatically after sync"
               : `${campaign.totalTargets} targets`}
           </CardDescription>
         </CardHeader>

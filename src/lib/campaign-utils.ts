@@ -31,6 +31,39 @@ export function isCampaignPolling(status: string, syncStatus?: string): boolean 
   );
 }
 
+export function isFollowerSyncInProgress(campaign: {
+  status: string;
+  syncStatus?: string;
+}): boolean {
+  return campaign.status === "syncing" || campaign.syncStatus === "syncing";
+}
+
+export const FOLLOWER_SYNC_POLL_MS = 3_000;
+
+export function resolveFollowerSyncCounts(
+  campaign: {
+    status: string;
+    syncStatus?: string;
+    syncedFollowerCount?: number;
+    canDmFollowerCount?: number;
+    totalTargets: number;
+  },
+  live?: { synced?: number; reachable?: number },
+): { syncedSoFar: number; reachableCount: number; isSyncing: boolean } {
+  const isSyncing = isFollowerSyncInProgress(campaign);
+  const isDelivering =
+    campaign.status === "pending" ||
+    campaign.status === "running" ||
+    campaign.status === "paused";
+
+  const syncedSoFar = Math.max(campaign.syncedFollowerCount ?? 0, live?.synced ?? 0);
+  const reachableCount = isDelivering
+    ? campaign.totalTargets
+    : Math.max(campaign.canDmFollowerCount ?? 0, live?.reachable ?? 0);
+
+  return { syncedSoFar, reachableCount, isSyncing };
+}
+
 export function canStopCampaign(status: string): boolean {
   return ["pending", "running", "paused", "draft", "syncing"].includes(status);
 }
@@ -40,16 +73,26 @@ export function formatCampaignAudienceLabel(campaign: {
   targetUsername?: string;
   totalTargets: number;
   syncedFollowerCount?: number;
+  canDmFollowerCount?: number;
   status: string;
+  syncStatus?: string;
 }): string | null {
   if (campaign.audienceType === "followers") {
     const target = campaign.targetUsername ? `@${campaign.targetUsername}` : "target account";
+    const { syncedSoFar, reachableCount } = resolveFollowerSyncCounts(campaign);
     if (campaign.status === "syncing") {
-      const synced = campaign.syncedFollowerCount ?? 0;
-      return `Followers of ${target} · syncing (${synced} so far)`;
+      return `Followers of ${target} · ${syncedSoFar} synced · ${reachableCount} reachable`;
     }
     if (campaign.status === "draft") {
-      return `Followers of ${target} · select recipients to start`;
+      return `Followers of ${target} · awaiting start`;
+    }
+    if (
+      campaign.syncStatus === "completed" &&
+      (campaign.status === "pending" ||
+        campaign.status === "running" ||
+        campaign.status === "paused")
+    ) {
+      return `Followers of ${target} · ${campaign.totalTargets} prospect(s)`;
     }
     return `Followers of ${target}`;
   }
@@ -61,13 +104,17 @@ export function formatCampaignAudienceLabel(campaign: {
 
 export function formatCampaignProgressLabel(campaign: {
   status: string;
+  syncStatus?: string;
+  syncedFollowerCount?: number;
+  canDmFollowerCount?: number;
   totalTargets: number;
   messagesSent: number;
   failedCount: number;
   progressPercent: number;
 }): string {
   if (campaign.status === "syncing") {
-    return "Syncing followers…";
+    const { syncedSoFar, reachableCount } = resolveFollowerSyncCounts(campaign);
+    return `${syncedSoFar} synced · ${reachableCount} reachable — auto-starts when ready`;
   }
   if (campaign.status === "draft") {
     return "Awaiting start";

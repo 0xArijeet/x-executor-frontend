@@ -3,6 +3,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  FOLLOWER_SYNC_POLL_MS,
+  isFollowerSyncInProgress,
+  resolveFollowerSyncCounts,
+} from "@/lib/campaign-utils";
 import { campaignsApi } from "@/lib/hub/api";
 import type { CampaignFollower, CampaignStatusResponse } from "@/lib/hub/types";
 import { useCallback, useEffect, useState } from "react";
@@ -11,7 +16,6 @@ type CampaignFollowerAudienceProps = {
   token: string;
   campaignId: string;
   campaign: CampaignStatusResponse;
-  admin: boolean;
   onCampaignUpdated: () => void;
 };
 
@@ -21,151 +25,107 @@ export function CampaignFollowerAudience({
   token,
   campaignId,
   campaign,
-  admin,
   onCampaignUpdated,
 }: CampaignFollowerAudienceProps) {
   const [followers, setFollowers] = useState<CampaignFollower[]>([]);
   const [total, setTotal] = useState(0);
-  const [selectedTotal, setSelectedTotal] = useState(0);
+  const [prospectTotal, setProspectTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [canDmOnly, setCanDmOnly] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [starting, setStarting] = useState(false);
 
+  const isSyncing = isFollowerSyncInProgress(campaign);
   const syncComplete = campaign.syncStatus === "completed";
-  const canSelect = admin && syncComplete && campaign.status === "draft";
+  const isDelivering =
+    campaign.status === "pending" ||
+    campaign.status === "running" ||
+    campaign.status === "paused";
+  const showFollowerList = isSyncing || syncComplete || total > 0;
 
-  const loadFollowers = useCallback(async () => {
-    if (!token) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const [result, selectedResult] = await Promise.all([
-        campaignsApi.listFollowers(token, campaignId, {
-          page,
-          limit: PAGE_SIZE,
-          canDm: canDmOnly ? true : undefined,
-          q: search.trim() || undefined,
-        }),
-        canSelect
-          ? campaignsApi.listFollowers(token, campaignId, {
-              page: 1,
-              limit: 1,
-              selected: true,
-              canDm: true,
-            })
-          : Promise.resolve(null),
-      ]);
-      setFollowers(result.data);
-      setTotal(result.total);
-      if (selectedResult) {
-        setSelectedTotal(selectedResult.total);
+  const loadFollowers = useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (!token) return;
+
+      if (options?.silent) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
       }
-    } catch (err) {
-      setError(errorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  }, [token, campaignId, page, canDmOnly, search, canSelect]);
+      setError(null);
+
+      try {
+        const [result, prospectResult] = await Promise.all([
+          campaignsApi.listFollowers(token, campaignId, {
+            page,
+            limit: PAGE_SIZE,
+            canDm: canDmOnly ? true : undefined,
+            q: search.trim() || undefined,
+          }),
+          campaignsApi.listFollowers(token, campaignId, {
+            page: 1,
+            limit: 1,
+            canDm: true,
+          }),
+        ]);
+        setFollowers(result.data);
+        setTotal(result.total);
+        setProspectTotal(prospectResult.total);
+      } catch (err) {
+        setError(errorMessage(err));
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [token, campaignId, page, canDmOnly, search],
+  );
 
   useEffect(() => {
     loadFollowers();
   }, [loadFollowers]);
 
   useEffect(() => {
-    if (campaign.status !== "syncing" && campaign.syncStatus !== "syncing") return;
-    const id = setInterval(onCampaignUpdated, 10_000);
-    return () => clearInterval(id);
-  }, [campaign.status, campaign.syncStatus, onCampaignUpdated]);
+    if (!isSyncing) return;
 
-  async function toggleSelection(follower: CampaignFollower) {
-    if (!canSelect) return;
-    setActionError(null);
-    setBusy(true);
-    try {
-      await campaignsApi.updateFollowerSelection(token, campaignId, {
-        followerIds: [follower.id],
-        selected: !follower.selected,
-      });
-      await loadFollowers();
-    } catch (err) {
-      setActionError(errorMessage(err));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function fetchAllFollowerIds(onlyCanDm: boolean): Promise<string[]> {
-    const ids: string[] = [];
-    let currentPage = 1;
-    while (true) {
-      const result = await campaignsApi.listFollowers(token, campaignId, {
-        page: currentPage,
-        limit: 200,
-        canDm: onlyCanDm ? true : undefined,
-        q: search.trim() || undefined,
-      });
-      ids.push(...result.data.map(follower => follower.id));
-      if (currentPage * 200 >= result.total) break;
-      currentPage += 1;
-    }
-    return ids;
-  }
-
-  async function bulkSelect(selected: boolean, onlyCanDm = false) {
-    if (!canSelect) return;
-    setActionError(null);
-    setBusy(true);
-    try {
-      const ids = await fetchAllFollowerIds(onlyCanDm);
-      if (ids.length === 0) return;
-
-      const chunkSize = 200;
-      for (let index = 0; index < ids.length; index += chunkSize) {
-        await campaignsApi.updateFollowerSelection(token, campaignId, {
-          followerIds: ids.slice(index, index + chunkSize),
-          selected,
-        });
-      }
-      await loadFollowers();
-    } catch (err) {
-      setActionError(errorMessage(err));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function handleStart() {
-    if (!admin || campaign.status !== "draft" || !syncComplete) return;
-    setActionError(null);
-    setStarting(true);
-    try {
-      await campaignsApi.start(token, campaignId);
+    const poll = () => {
+      void loadFollowers({ silent: true });
       onCampaignUpdated();
-    } catch (err) {
-      setActionError(errorMessage(err));
-    } finally {
-      setStarting(false);
-    }
-  }
+    };
 
-  const selectedOnPage = followers.filter(f => f.selected).length;
+    const id = setInterval(poll, FOLLOWER_SYNC_POLL_MS);
+    return () => clearInterval(id);
+  }, [isSyncing, loadFollowers, onCampaignUpdated]);
+
+  const { syncedSoFar, reachableCount } = resolveFollowerSyncCounts(campaign, {
+    synced: total,
+    reachable: prospectTotal,
+  });
 
   return (
     <Card className="mb-6">
       <CardHeader>
-        <CardTitle className="text-lg">Follower audience</CardTitle>
+        <div className="flex flex-wrap items-center gap-2">
+          <CardTitle className="text-lg">Follower prospects</CardTitle>
+          {isSyncing && (
+            <Badge variant="secondary" className="animate-pulse">
+              Live sync
+            </Badge>
+          )}
+          {isDelivering && (
+            <Badge variant="outline">Auto-started</Badge>
+          )}
+        </div>
         <CardDescription>
-          {campaign.targetUsername ? `@${campaign.targetUsername}` : "Target account"} ·{" "}
-          {campaign.syncedFollowerCount ?? 0} synced · {campaign.canDmFollowerCount ?? 0} can DM
-          {canSelect && selectedTotal > 0 ? ` · ${selectedTotal} selected` : ""}
-          {campaign.status === "syncing" || campaign.syncStatus === "syncing"
-            ? " · syncing followers…"
-            : ""}
+          {campaign.targetUsername ? `@${campaign.targetUsername}` : "Target account"}
+          {isSyncing
+            ? " · campaign starts automatically when sync finishes"
+            : isDelivering
+              ? ` · sending to ${campaign.totalTargets || reachableCount} prospect(s)`
+              : ""}
+          {isSyncing && refreshing ? " · updating…" : ""}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -173,47 +133,21 @@ export function CampaignFollowerAudience({
           <p className="text-sm text-destructive">Sync failed: {campaign.syncError}</p>
         )}
 
-        <ErrorAlert error={error} />
-        <ErrorAlert error={actionError} />
-
-        {canSelect && (
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              disabled={busy}
-              onClick={() => bulkSelect(true, true)}
-            >
-              Select all can DM
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              disabled={busy}
-              onClick={() => bulkSelect(false)}
-            >
-              Clear selection
-            </Button>
-            <Button type="button" size="sm" disabled={starting || selectedTotal === 0} onClick={handleStart}>
-              {starting ? "Starting…" : "Start campaign"}
-            </Button>
-            {selectedTotal === 0 && (
-              <span className="text-xs text-muted-foreground">
-                Select at least one follower who can receive DMs.
-              </span>
-            )}
-          </div>
-        )}
-
-        {!canSelect && syncComplete && campaign.status === "draft" && !admin && (
+        {!isSyncing && syncComplete && prospectTotal === 0 && campaign.status === "failed" && (
           <p className="text-sm text-muted-foreground">
-            An admin must select followers and start this campaign.
+            No followers with open DMs were found for this account.
           </p>
         )}
 
-        {(canSelect || total > 0) && (
+        {!isSyncing && syncComplete && prospectTotal > 0 && (
+          <p className="text-sm text-muted-foreground">
+            Followers who can receive DMs are included automatically — no manual selection needed.
+          </p>
+        )}
+
+        <ErrorAlert error={error} />
+
+        {showFollowerList && (
           <>
             <div className="flex flex-wrap items-center gap-3">
               <Input
@@ -224,6 +158,7 @@ export function CampaignFollowerAudience({
                   setSearch(e.target.value);
                 }}
                 className="max-w-xs"
+                disabled={isSyncing && loading}
               />
               <label className="flex items-center gap-2 text-sm">
                 <input
@@ -233,44 +168,48 @@ export function CampaignFollowerAudience({
                     setPage(1);
                     setCanDmOnly(e.target.checked);
                   }}
+                  disabled={isSyncing && loading}
                 />
                 Can DM only
               </label>
             </div>
 
             {loading ? (
-              <p className="text-sm text-muted-foreground">Loading followers…</p>
+              <p className="text-sm text-muted-foreground">
+                {isSyncing ? "Loading synced followers…" : "Loading followers…"}
+              </p>
             ) : followers.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No followers match your filters.</p>
+              <p className="text-sm text-muted-foreground">
+                {isSyncing
+                  ? "Waiting for the first followers — they will appear here as they sync."
+                  : "No followers match your filters."}
+              </p>
             ) : (
               <div className="overflow-x-auto rounded-lg border border-border">
                 <table className="min-w-full text-sm">
                   <thead className="bg-muted/40 text-left">
                     <tr>
-                      {canSelect && <th className="px-3 py-2">Select</th>}
                       <th className="px-3 py-2">User</th>
                       <th className="px-3 py-2">Name</th>
                       <th className="px-3 py-2">Can DM</th>
+                      <th className="px-3 py-2">Included</th>
                     </tr>
                   </thead>
                   <tbody>
                     {followers.map(follower => (
                       <tr key={follower.id} className="border-t border-border">
-                        {canSelect && (
-                          <td className="px-3 py-2">
-                            <input
-                              type="checkbox"
-                              checked={follower.selected}
-                              disabled={busy || !follower.canDm}
-                              onChange={() => toggleSelection(follower)}
-                            />
-                          </td>
-                        )}
                         <td className="px-3 py-2 font-mono">@{follower.userName}</td>
                         <td className="px-3 py-2">{follower.name}</td>
                         <td className="px-3 py-2">
                           {follower.canDm ? (
                             <Badge variant="outline">Yes</Badge>
+                          ) : (
+                            <span className="text-muted-foreground">No</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2">
+                          {follower.canDm ? (
+                            <Badge>Yes</Badge>
                           ) : (
                             <span className="text-muted-foreground">No</span>
                           )}
@@ -284,8 +223,8 @@ export function CampaignFollowerAudience({
 
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>
-                Page {page} · {total} total
-                {canSelect ? ` · ${selectedOnPage} selected on this page` : ""}
+                Page {page} · {total} shown · {syncedSoFar} synced · {reachableCount} reachable
+                {isSyncing ? " (live)" : ""}
               </span>
               <div className="flex gap-2">
                 <Button
@@ -311,11 +250,10 @@ export function CampaignFollowerAudience({
           </>
         )}
 
-        {canSelect && (
-          <p className="text-xs text-muted-foreground">
-            Start sends only to selected followers with can DM enabled (max ~800 synced per target).
-          </p>
-        )}
+        <p className="text-xs text-muted-foreground">
+          Up to ~800 followers are synced per target account. Only prospects with open DMs are
+          messaged.
+        </p>
       </CardContent>
     </Card>
   );
