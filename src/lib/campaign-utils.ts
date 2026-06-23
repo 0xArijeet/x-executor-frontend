@@ -122,3 +122,10 @@ export function formatCampaignProgressLabel(campaign: {
   const processed = campaign.messagesSent + campaign.failedCount;
   return `${processed} of ${campaign.totalTargets} processed · ${campaign.progressPercent}% complete`;
 }
+
+export function formatCompactCount(value: number): string {
+  return new Intl.NumberFormat(undefined, {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(value);
+}

@@ -171,6 +171,10 @@ export function CampaignProgressPage() {
                 targetUsername={campaign.targetUsername}
                 targetDisplayName={campaign.targetDisplayName}
                 targetProfilePictureUrl={campaign.targetProfilePictureUrl}
+                targetIsVerified={campaign.targetIsVerified}
+                targetIsBlueVerified={campaign.targetIsBlueVerified}
+                targetIsIdentityVerified={campaign.targetIsIdentityVerified}
+                targetFollowersCount={campaign.targetFollowersCount}
               />
             </div>
           )}

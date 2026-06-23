@@ -200,6 +200,10 @@ export type CreateCampaignResponse = {
   targetUsername?: string;
   targetDisplayName?: string;
   targetProfilePictureUrl?: string;
+  targetIsVerified?: boolean;
+  targetIsBlueVerified?: boolean;
+  targetIsIdentityVerified?: boolean;
+  targetFollowersCount?: number;
   syncStatus?: CampaignSyncStatus;
   syncedFollowerCount?: number;
   canDmFollowerCount?: number;
@@ -224,6 +228,10 @@ export type CampaignSummary = {
   targetUsername?: string;
   targetDisplayName?: string;
   targetProfilePictureUrl?: string;
+  targetIsVerified?: boolean;
+  targetIsBlueVerified?: boolean;
+  targetIsIdentityVerified?: boolean;
+  targetFollowersCount?: number;
   syncStatus?: CampaignSyncStatus;
   syncedFollowerCount?: number;
   canDmFollowerCount?: number;
@@ -250,6 +258,10 @@ export type CampaignStatusResponse = {
   targetUsername?: string;
   targetDisplayName?: string;
   targetProfilePictureUrl?: string;
+  targetIsVerified?: boolean;
+  targetIsBlueVerified?: boolean;
+  targetIsIdentityVerified?: boolean;
+  targetFollowersCount?: number;
   syncStatus?: CampaignSyncStatus;
   syncedFollowerCount?: number;
   canDmFollowerCount?: number;
