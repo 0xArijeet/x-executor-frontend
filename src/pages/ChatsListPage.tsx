@@ -112,17 +112,23 @@ function HandoffCard({
   handoff: HandoffSummary;
   orgId: string;
 }) {
+  const displayName =
+    handoff.recipientName ??
+    handoff.recipientUsername ??
+    `User ${handoff.recipientId}`;
   return (
     <Card key={handoff._id}>
       <CardHeader className="pb-2">
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-sm font-medium text-amber-700 dark:bg-amber-900 dark:text-amber-300">
-            H
-          </div>
+          <Avatar
+            src={handoff.recipientProfilePictureUrl}
+            name={displayName}
+          />
           <div className="flex-1 min-w-0">
-            <CardTitle className="text-lg truncate">{handoff.category}</CardTitle>
-            <CardDescription className="font-mono text-xs truncate max-w-xs">
-              {handoff.conversationId}
+            <CardTitle className="text-lg truncate">{displayName}</CardTitle>
+            <CardDescription className="truncate text-xs">
+              {handoff.category}
+              {handoff.recipientUsername && ` · @${handoff.recipientUsername}`}
             </CardDescription>
           </div>
           <Badge className="shrink-0">{handoff.triggerReason}</Badge>

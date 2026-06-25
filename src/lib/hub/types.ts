@@ -416,7 +416,9 @@ export type HandoffSummary = {
   connectionId: string;
   conversationId: string;
   recipientId: string;
-  recipientUsername?: string;
+  recipientUsername?: string | null;
+  recipientName?: string | null;
+  recipientProfilePictureUrl?: string | null;
   category: string;
   triggerReason: string;
   contextSummary: string;
