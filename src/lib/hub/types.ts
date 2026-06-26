@@ -441,7 +441,7 @@ export type ConversationReplyResponse = {
   conversationId: string;
 };
 
-export type LeadListSourceType = "followers" | "following" | "tweet_replies" | "retweeters";
+export type LeadListSourceType = "followers" | "following" | "retweeters";
 
 export type LeadListStatus = "syncing" | "paused" | "stopped" | "completed" | "failed";
 

@@ -11,7 +11,6 @@ import { Link, useParams } from "react-router-dom";
 const SOURCE_LABELS: Record<LeadListSourceType, string> = {
   followers: "Followers",
   following: "Following",
-  tweet_replies: "Tweet Replies",
   retweeters: "Retweeters",
 };
 

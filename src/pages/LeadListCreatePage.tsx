@@ -31,12 +31,6 @@ const SOURCE_OPTIONS: SourceOption[] = [
     needsUsername: true,
   },
   {
-    value: "tweet_replies",
-    label: "Tweet Replies",
-    description: "People who replied to a specific tweet",
-    needsUsername: false,
-  },
-  {
     value: "retweeters",
     label: "Retweeters",
     description: "People who retweeted a specific tweet",

@@ -12,7 +12,6 @@ import { Link, useParams } from "react-router-dom";
 const SOURCE_LABELS: Record<LeadListSourceType, string> = {
   followers: "Followers",
   following: "Following",
-  tweet_replies: "Tweet Replies",
   retweeters: "Retweeters",
 };
 
@@ -271,7 +270,7 @@ export function LeadListDetailPage() {
               <div>
                 <p className="text-sm font-medium mb-2">Source</p>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {(["followers", "following", "tweet_replies", "retweeters"] as LeadListSourceType[]).map(src => (
+                  {(["followers", "following", "retweeters"] as LeadListSourceType[]).map(src => (
                     <button
                       key={src}
                       type="button"
