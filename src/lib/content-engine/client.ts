@@ -12,7 +12,7 @@ export class ContentEngineApiError extends Error {
 
 // Bun replaces import.meta.env.PUBLIC_* with the literal value at build time.
 // The variable must be set in the build environment (Vercel env vars) before the build runs.
-const _CE_BASE: string = import.meta.env.PUBLIC_CONTENT_ENGINE_URL ?? "";
+const _CE_BASE: string = import.meta.env?.PUBLIC_CONTENT_ENGINE_URL ?? "";
 
 function apiBase(): string {
   return _CE_BASE.replace(/\/$/, "");
