@@ -142,6 +142,9 @@ const result = await Bun.build({
         process.env.PUBLIC_API_BASE ??
         "",
     ),
+    "import.meta.env.PUBLIC_CONTENT_ENGINE_URL": JSON.stringify(
+      process.env.PUBLIC_CONTENT_ENGINE_URL ?? "",
+    ),
   },
   ...cliConfig,
 });
