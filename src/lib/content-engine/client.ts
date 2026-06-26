@@ -11,10 +11,7 @@ export class ContentEngineApiError extends Error {
 }
 
 function apiBase(): string {
-  // Build-time injected env vars (Bun inlines these)
-  const fromEnv =
-    (typeof process !== "undefined" && process.env.PUBLIC_CONTENT_ENGINE_URL) || "";
-  return fromEnv.replace(/\/$/, "");
+  return (import.meta.env.PUBLIC_CONTENT_ENGINE_URL ?? "").replace(/\/$/, "");
 }
 
 export async function ceFetch<T>(
