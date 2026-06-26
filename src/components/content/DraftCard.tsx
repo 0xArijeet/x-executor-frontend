@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { PostCoachBadge } from "./PostCoachBadge";
 import type { ContentDraft } from "@/lib/content-engine/types";
 
@@ -9,6 +10,9 @@ interface DraftCardProps {
 }
 
 export function DraftCard({ draft, onEdit, onDelete, deleting }: DraftCardProps) {
+  const [showVersions, setShowVersions] = useState(false);
+  const sortedVersions = [...(draft.versions ?? [])].reverse();
+
   return (
     <div className="rounded-lg border border-border p-4 space-y-3">
       <p className="text-sm leading-snug line-clamp-3 whitespace-pre-line">{draft.text}</p>
@@ -23,8 +27,14 @@ export function DraftCard({ draft, onEdit, onDelete, deleting }: DraftCardProps)
             {draft.angleType}
           </span>
         )}
-        {draft.versions.length > 1 && (
-          <span className="opacity-60">{draft.versions.length} versions</span>
+        {sortedVersions.length > 1 && (
+          <button
+            type="button"
+            onClick={() => setShowVersions((v) => !v)}
+            className="opacity-60 hover:opacity-100 underline underline-offset-2"
+          >
+            {sortedVersions.length} versions {showVersions ? "▲" : "▼"}
+          </button>
         )}
         <span className="opacity-60 ml-auto">
           {new Date(draft.createdAt).toLocaleDateString(undefined, {
@@ -33,6 +43,38 @@ export function DraftCard({ draft, onEdit, onDelete, deleting }: DraftCardProps)
           })}
         </span>
       </div>
+
+      {showVersions && sortedVersions.length > 1 && (
+        <div className="space-y-2 border-t border-border pt-3">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            Version history
+          </p>
+          {sortedVersions.map((v, i) => (
+            <div
+              key={i}
+              className="rounded-md border border-border bg-muted/20 px-3 py-2 space-y-1.5"
+            >
+              <div className="flex items-center gap-2">
+                {v.score > 0 && <PostCoachBadge score={v.score} size="sm" />}
+                <span className="text-xs text-muted-foreground">
+                  {new Date(v.createdAt).toLocaleString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+                {i === 0 && (
+                  <span className="ml-auto text-xs font-medium text-primary">Current</span>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground line-clamp-2 whitespace-pre-line">
+                {v.text}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="flex gap-2">
         <button

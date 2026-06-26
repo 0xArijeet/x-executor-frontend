@@ -24,6 +24,9 @@ export function ContentComposePage() {
   const navigate = useNavigate();
   const { profile } = useContentProfile(orgId!);
 
+  // If opened from "Edit draft", these are pre-filled
+  const initialDraftId = searchParams.get("draftId");
+
   const [topic, setTopic] = useState(searchParams.get("topic") ?? "");
   const [angle, setAngle] = useState(searchParams.get("angle") ?? "");
   const [angleType, setAngleType] = useState<AngleType>(
@@ -31,6 +34,8 @@ export function ContentComposePage() {
   );
   const [userIdea, setUserIdea] = useState("");
   const [tweetText, setTweetText] = useState(searchParams.get("draftText") ?? "");
+  // Session-local version history (most recent first). When editing an existing draft,
+  // the backend's stored versions are shown separately via the draft.versions array.
   const [versions, setVersions] = useState<DraftVersion[]>([]);
   const [rewriteInstruction, setRewriteInstruction] = useState("");
   const [coach, setCoach] = useState<CoachResult | null>(null);
@@ -38,27 +43,25 @@ export function ContentComposePage() {
   const [rewriting, setRewriting] = useState(false);
   const [scoring, setScoring] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [savedDraftId, setSavedDraftId] = useState<string | null>(null);
+  // Pre-seeded when editing an existing draft — PATCHes instead of POSTing new
+  const [savedDraftId, setSavedDraftId] = useState<string | null>(initialDraftId);
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const scoreText = useCallback(
-    async (text: string) => {
-      if (!text.trim()) { setCoach(null); return; }
-      setScoring(true);
-      try {
-        const result = await composeApi.score(text);
-        setCoach(result);
-      } catch {
-        // silently ignore live scoring failures
-      } finally {
-        setScoring(false);
-      }
-    },
-    [],
-  );
+  const scoreText = useCallback(async (text: string) => {
+    if (!text.trim()) { setCoach(null); return; }
+    setScoring(true);
+    try {
+      const result = await composeApi.score(text);
+      setCoach(result);
+    } catch {
+      // silently ignore live scoring failures
+    } finally {
+      setScoring(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -90,6 +93,7 @@ export function ContentComposePage() {
     setError(null);
     try {
       const res = await composeApi.rewrite(orgId, tweetText, rewriteInstruction);
+      // Push current text as a version before replacing
       setVersions((v) => [{ text: tweetText, score: coach?.score ?? 0, createdAt: new Date().toISOString() }, ...v]);
       setTweetText(res.text);
       setCoach({ score: res.score, verdict: res.verdict, summary: res.summary, checks: res.checks, stats: res.stats, wordCount: res.wordCount, charCount: res.charCount });
@@ -106,16 +110,28 @@ export function ContentComposePage() {
     setSaving(true);
     setError(null);
     try {
-      const draft = await draftsApi.save(orgId, {
-        text: tweetText,
-        score: coach?.score,
-        verdict: coach?.verdict,
-        topic,
-        angle,
-        angleType,
-      });
-      setSavedDraftId(draft._id);
-      setSuccessMsg("Draft saved.");
+      if (savedDraftId) {
+        // Update existing draft — backend pushes new version entry with score
+        const draft = await draftsApi.update(orgId, savedDraftId, {
+          text: tweetText,
+          score: coach?.score,
+          verdict: coach?.verdict,
+        });
+        setSavedDraftId(draft._id);
+        setSuccessMsg("Draft updated.");
+      } else {
+        // Create new draft
+        const draft = await draftsApi.save(orgId, {
+          text: tweetText,
+          score: coach?.score,
+          verdict: coach?.verdict,
+          topic,
+          angle,
+          angleType,
+        });
+        setSavedDraftId(draft._id);
+        setSuccessMsg("Draft saved.");
+      }
       setTimeout(() => setSuccessMsg(null), 3000);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -125,7 +141,12 @@ export function ContentComposePage() {
   }
 
   async function handlePostToX() {
-    if (!orgId || !savedDraftId) return;
+    if (!orgId) return;
+    // Must save first if no draft id yet
+    if (!savedDraftId) {
+      await handleSaveDraft();
+      return;
+    }
     const connectionId = prompt("Enter your X Connection ID to post:");
     if (!connectionId) return;
     setPosting(true);
@@ -155,12 +176,19 @@ export function ContentComposePage() {
     );
   }
 
+  const isEditingExisting = !!initialDraftId;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Compose</h1>
+        <div>
+          <h1 className="text-xl font-semibold">Compose</h1>
+          {isEditingExisting && (
+            <p className="text-xs text-muted-foreground mt-0.5">Editing draft — save updates existing, versions tracked</p>
+          )}
+        </div>
         <Link to={`/orgs/${orgId}/content/trends`} className="text-sm text-muted-foreground hover:text-foreground">
-          ← Trends
+          ← Back
         </Link>
       </div>
 
@@ -174,7 +202,6 @@ export function ContentComposePage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
         {/* Left: Composer */}
         <div className="space-y-5">
-          {/* Context */}
           <div className="space-y-3">
             <div className="space-y-1.5">
               <label className="text-xs font-medium">Topic</label>
@@ -256,7 +283,7 @@ export function ContentComposePage() {
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
                 value={rewriteInstruction}
                 onChange={(e) => setRewriteInstruction(e.target.value)}
-                placeholder="Instruction, e.g. 'Make it punchier' or 'Add a data point'"
+                placeholder="e.g. 'Make it punchier' or 'Add a data point'"
                 onKeyDown={(e) => e.key === "Enter" && handleRewrite()}
               />
               <button
@@ -270,29 +297,27 @@ export function ContentComposePage() {
             </div>
           )}
 
-          {/* Versions */}
+          {/* Session version history */}
           {versions.length > 0 && (
             <details className="rounded-lg border border-border">
               <summary className="cursor-pointer px-4 py-2.5 text-xs font-medium text-muted-foreground">
-                Version history ({versions.length})
+                Session versions ({versions.length})
               </summary>
-              <div className="space-y-2 p-4 pt-0">
+              <div className="space-y-2 p-4 pt-2">
                 {versions.map((v, i) => (
-                  <div key={i} className="space-y-1">
+                  <div key={i} className="space-y-1 rounded-md border border-border bg-muted/20 px-3 py-2">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <PostCoachBadge score={v.score} size="sm" />
+                      {v.score > 0 && <PostCoachBadge score={v.score} size="sm" />}
                       <span>{new Date(v.createdAt).toLocaleTimeString()}</span>
                       <button
                         type="button"
                         onClick={() => setTweetText(v.text)}
-                        className="ml-auto text-primary hover:underline"
+                        className="ml-auto text-primary hover:underline text-xs"
                       >
                         Restore
                       </button>
                     </div>
-                    <p className="text-xs text-muted-foreground line-clamp-2 whitespace-pre-line">
-                      {v.text}
-                    </p>
+                    <p className="text-xs text-muted-foreground line-clamp-2 whitespace-pre-line">{v.text}</p>
                   </div>
                 ))}
               </div>
@@ -308,18 +333,16 @@ export function ContentComposePage() {
                 onClick={handleSaveDraft}
                 className="rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-muted disabled:opacity-50"
               >
-                {saving ? "Saving…" : savedDraftId ? "Save again" : "Save draft"}
+                {saving ? "Saving…" : isEditingExisting ? "Update draft" : savedDraftId ? "Save again" : "Save draft"}
               </button>
-              {savedDraftId && (
-                <button
-                  type="button"
-                  disabled={posting}
-                  onClick={handlePostToX}
-                  className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-                >
-                  {posting ? "Posting…" : "Post to X"}
-                </button>
-              )}
+              <button
+                type="button"
+                disabled={posting || saving}
+                onClick={handlePostToX}
+                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              >
+                {posting ? "Posting…" : "Post to X"}
+              </button>
             </div>
           )}
         </div>

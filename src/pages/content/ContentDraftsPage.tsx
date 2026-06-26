@@ -66,6 +66,7 @@ export function ContentDraftsPage() {
 
   function handleEdit(draft: ContentDraft) {
     const params = new URLSearchParams({
+      draftId: draft._id,
       draftText: draft.text,
       topic: draft.topic ?? "",
       angle: draft.angle ?? "",

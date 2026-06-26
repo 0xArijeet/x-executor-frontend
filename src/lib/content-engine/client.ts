@@ -32,16 +32,16 @@ export async function ceFetch<T>(
     },
   });
   const contentType = res.headers.get("content-type") ?? "";
-  if (!contentType.includes("application/json")) {
-    throw new ContentEngineApiError(
-      "Content Engine returned a non-JSON response. Check that the service is running.",
-      res.status,
-    );
-  }
-
-  const body = (await res.json()) as unknown;
+  const hasJson = contentType.includes("application/json");
 
   if (!res.ok) {
+    if (!hasJson) {
+      throw new ContentEngineApiError(
+        `Content Engine error ${res.status}. Check that the service is running.`,
+        res.status,
+      );
+    }
+    const body = (await res.json()) as unknown;
     const msg =
       typeof body === "object" && body !== null && "message" in body
         ? String((body as { message: unknown }).message)
@@ -49,5 +49,8 @@ export async function ceFetch<T>(
     throw new ContentEngineApiError(msg, res.status);
   }
 
-  return body as T;
+  // 204 or empty body — void response
+  if (res.status === 204 || !hasJson) return undefined as T;
+
+  return (await res.json()) as T;
 }
