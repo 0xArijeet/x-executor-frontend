@@ -45,7 +45,7 @@ export function CampaignCreateForm({ token, connections, onCreated }: CampaignCr
   const [canDmOnly, setCanDmOnly] = useState(true);
   const [messageText, setMessageText] = useState("");
   const [dmsPerHour, setDmsPerHour] = useState(DMS_PER_HOUR_DEFAULT);
-  const [dailyLimitPerAccount, setDailyLimitPerAccount] = useState(2000);
+  const [dailyLimitPerAccount, setDailyLimitPerAccount] = useState(400);
   const [timezone, setTimezone] = useState(detectBrowserTimezone);
   const [schedule, setSchedule] = useState<CampaignScheduleDay[]>(createDefaultCampaignSchedule);
   const [selectedConnectionIds, setSelectedConnectionIds] = useState<string[]>([]);

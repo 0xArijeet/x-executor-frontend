@@ -18,6 +18,7 @@ import type {
   CreateCampaignResponse,
   CampaignStatusResponse,
   CampaignSummary,
+  CampaignListResponse,
   CampaignControlResponse,
   TargetProfileResponse,
   CampaignFollowersListResponse,
@@ -29,6 +30,10 @@ import type {
   ConversationReplyResponse,
   ValidateConnectionResponse,
   CampaignFollower,
+  CampaignDailyStat,
+  ContactedUsersResponse,
+  UpdateCampaignSettingsInput,
+  UpdateCampaignSettingsResponse,
   LeadList,
   TweetPreviewResponse,
   Lead,
@@ -202,7 +207,7 @@ export const connectionsApi = {
 
 export const campaignsApi = {
   list(token: string) {
-    return hubFetch<CampaignSummary[]>("/x/campaigns", { token });
+    return hubFetch<CampaignListResponse>("/x/campaigns", { token });
   },
   create(token: string, input: CreateCampaignInput) {
     return hubFetch<CreateCampaignResponse>("/x/campaigns", {
@@ -287,6 +292,33 @@ export const campaignsApi = {
     return hubFetch<CreateCampaignResponse>(
       `/x/campaigns/${encodeURIComponent(campaignId)}/start`,
       { method: "POST", token },
+    );
+  },
+  getDailyStats(token: string, campaignId: string) {
+    return hubFetch<CampaignDailyStat[]>(
+      `/x/campaigns/${encodeURIComponent(campaignId)}/daily-stats`,
+      { token },
+    );
+  },
+  updateSettings(token: string, campaignId: string, input: UpdateCampaignSettingsInput) {
+    return hubFetch<UpdateCampaignSettingsResponse>(
+      `/x/campaigns/${encodeURIComponent(campaignId)}/settings`,
+      { method: "PATCH", token, body: JSON.stringify(input) },
+    );
+  },
+  getContactedUsers(
+    token: string,
+    campaignId: string,
+    params?: { page?: number; limit?: number; status?: "sent" | "failed" },
+  ) {
+    const search = new URLSearchParams();
+    if (params?.page !== undefined) search.set("page", String(params.page));
+    if (params?.limit !== undefined) search.set("limit", String(params.limit));
+    if (params?.status) search.set("status", params.status);
+    const query = search.toString();
+    return hubFetch<ContactedUsersResponse>(
+      `/x/campaigns/${encodeURIComponent(campaignId)}/contacted-users${query ? `?${query}` : ""}`,
+      { token },
     );
   },
 };

@@ -441,6 +441,54 @@ export type ConversationReplyResponse = {
   conversationId: string;
 };
 
+export type CampaignDailyStat = {
+  date: string;
+  sent: number;
+  failed: number;
+};
+
+export type CampaignListStats = {
+  total: number;
+  active: number;
+  totalProspects: number;
+  totalSent: number;
+  totalReplies: number;
+};
+
+export type CampaignListResponse = {
+  data: CampaignSummary[];
+  stats: CampaignListStats;
+};
+
+export type ContactedUser = {
+  recipientUsername: string;
+  recipientId: string;
+  status: "sent" | "failed";
+  sentAt: string | null;
+  replyReceived: boolean;
+};
+
+export type ContactedUsersResponse = {
+  data: ContactedUser[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
+export type UpdateCampaignSettingsInput = {
+  dmsPerHour?: number;
+  dailyLimitPerAccount?: number;
+  schedule?: CampaignScheduleDay[];
+};
+
+export type UpdateCampaignSettingsResponse = {
+  id: string;
+  dmsPerHour: number;
+  dailyLimitPerAccount?: number;
+  schedule?: CampaignScheduleDay[];
+  updatedAt: string;
+};
+
 export type LeadListSourceType = "followers" | "following" | "retweeters";
 
 export type LeadListStatus = "syncing" | "paused" | "stopped" | "completed" | "failed";
