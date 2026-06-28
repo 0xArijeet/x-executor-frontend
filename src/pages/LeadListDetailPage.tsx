@@ -246,7 +246,7 @@ export function LeadListDetailPage() {
               <p className="text-xs text-muted-foreground">Synced</p>
               <p className="text-xl font-semibold tabular-nums">
                 {list.syncedCount.toLocaleString()}
-                {list.totalCount != null && (
+                {list.totalCount != null && list.totalCount >= list.syncedCount && (
                   <span className="text-sm font-normal text-muted-foreground">
                     {" "}/ {list.totalCount.toLocaleString()}
                   </span>
@@ -263,7 +263,7 @@ export function LeadListDetailPage() {
             </div>
           </div>
 
-          {list.totalCount != null && list.totalCount > 0 && (
+          {list.totalCount != null && list.totalCount > 0 && list.totalCount >= list.syncedCount && (
             <div className="space-y-1">
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>Sync progress</span>
