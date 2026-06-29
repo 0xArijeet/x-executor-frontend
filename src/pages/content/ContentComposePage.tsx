@@ -315,25 +315,32 @@ export function ContentComposePage() {
           {versions.length > 0 && (
             <details className="rounded-lg border border-border">
               <summary className="cursor-pointer px-4 py-2.5 text-xs font-medium text-muted-foreground">
-                Session versions ({versions.length})
+                Session versions — v1 → v{versions.length}
               </summary>
               <div className="space-y-2 p-4 pt-2">
-                {versions.map((v, i) => (
-                  <div key={i} className="space-y-1 rounded-md border border-border bg-muted/20 px-3 py-2">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      {v.score > 0 && <PostCoachBadge score={v.score} size="sm" />}
-                      <span>{new Date(v.createdAt).toLocaleTimeString()}</span>
-                      <button
-                        type="button"
-                        onClick={() => setTweetText(v.text)}
-                        className="ml-auto text-primary hover:underline text-xs"
-                      >
-                        Restore
-                      </button>
+                {versions.map((v, i) => {
+                  const vNum = versions.length - i;
+                  const isLatest = i === 0;
+                  return (
+                    <div key={i} className="space-y-1 rounded-md border border-border bg-muted/20 px-3 py-2">
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${isLatest ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                          v{vNum}{isLatest ? " · Latest" : ""}
+                        </span>
+                        {v.score > 0 && <PostCoachBadge score={v.score} size="sm" />}
+                        <span className="text-muted-foreground">{new Date(v.createdAt).toLocaleTimeString()}</span>
+                        <button
+                          type="button"
+                          onClick={() => setTweetText(v.text)}
+                          className="ml-auto text-primary hover:underline text-xs"
+                        >
+                          Restore
+                        </button>
+                      </div>
+                      <p className="text-xs text-muted-foreground line-clamp-2 whitespace-pre-line">{v.text}</p>
                     </div>
-                    <p className="text-xs text-muted-foreground line-clamp-2 whitespace-pre-line">{v.text}</p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </details>
           )}
