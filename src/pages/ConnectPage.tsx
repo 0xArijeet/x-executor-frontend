@@ -2,7 +2,7 @@ import { ErrorAlert, errorMessage } from "@/components/ErrorAlert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { invitesApi } from "@/lib/hub/api";
-import { oauthStartUrl, validateHubPublicBaseUrl } from "@/lib/hub/client";
+import { apiBase, oauthStartUrl, validateHubPublicBaseUrl } from "@/lib/hub/client";
 import { getOAuthSuccess } from "@/lib/oauth-session";
 import type { InvitePublic } from "@/lib/hub/types";
 import { useEffect, useRef, useState } from "react";
@@ -133,9 +133,12 @@ export function ConnectPage() {
 
   return (
     <>
-      {/* Hidden anchor for the extension content script to read the invite token from the DOM. */}
+      {/* Meta tags for the extension content script. */}
       {token && (
-        <meta id="omnibot-invite-token" content={token} />
+        <>
+          <meta id="omnibot-invite-token" content={token} />
+          <meta id="omnibot-api-base" content={apiBase()} />
+        </>
       )}
 
       <Card>
