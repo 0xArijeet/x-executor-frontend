@@ -1,19 +1,47 @@
 import { ErrorAlert, errorMessage } from "@/components/ErrorAlert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { invitesApi } from "@/lib/hub/api";
+import { Input } from "@/components/ui/input";
+import { invitesApi, connectAttemptApi } from "@/lib/hub/api";
 import { apiBase, oauthStartUrl, validateHubPublicBaseUrl } from "@/lib/hub/client";
 import { getOAuthSuccess } from "@/lib/oauth-session";
 import type { InvitePublic } from "@/lib/hub/types";
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
+interface XSession {
+  twuid: string;
+  username: string;
+  authToken: string;
+  ct0: string;
+}
+
+type Step =
+  | "detecting"
+  | "no-ext"
+  | "pick-account"
+  | "creating"
+  | "enter-pin"
+  | "validating"
+  | "error";
+
 export function ConnectPage() {
   const { token } = useParams<{ token: string }>();
   const [meta, setMeta] = useState<InvitePublic | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [extensionDetected, setExtensionDetected] = useState<boolean | null>(null);
+
+  // Extension-driven flow state
+  const [step, setStep] = useState<Step>("detecting");
+  const [sessions, setSessions] = useState<XSession[]>([]);
+  const [selectedSession, setSelectedSession] = useState<XSession | null>(null);
+  const [nonce, setNonce] = useState<string | null>(null);
+  const [pin, setPin] = useState("");
+  const [pinError, setPinError] = useState<string | null>(null);
+  const [flowError, setFlowError] = useState<string | null>(null);
+
+  const extDetected = useRef(false);
+  const sessionsRef = useRef<XSession[]>([]);
   const extTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -25,30 +53,95 @@ export function ConnectPage() {
       .finally(() => setLoading(false));
   }, [token]);
 
-  // Listen for the extension's ready signal (posted from content script via window.postMessage).
   useEffect(() => {
     function onMessage(event: MessageEvent) {
       if (event.source !== window) return;
-      if ((event.data as { type?: string })?.type === "OMNIBOT_EXT_READY") {
-        setExtensionDetected(true);
+      const data = event.data as { type?: string; sessions?: XSession[] };
+
+      if (data?.type === "OMNIBOT_EXT_READY") {
+        extDetected.current = true;
         if (extTimeoutRef.current) clearTimeout(extTimeoutRef.current);
+        // Transition to pick-account once we have sessions (may arrive in either order)
+        if (sessionsRef.current.length > 0 || step === "detecting") {
+          setStep(s => s === "detecting" ? "pick-account" : s);
+        }
+      }
+
+      if (data?.type === "OMNIBOT_SESSIONS") {
+        const incoming = data.sessions ?? [];
+        sessionsRef.current = incoming;
+        setSessions(incoming);
+        if (extDetected.current) {
+          setStep(s => s === "detecting" || s === "pick-account" ? "pick-account" : s);
+        }
       }
     }
+
     window.addEventListener("message", onMessage);
-    // Give the extension 2 seconds to announce itself; after that assume not installed.
     extTimeoutRef.current = setTimeout(() => {
-      setExtensionDetected(prev => (prev === null ? false : prev));
+      if (!extDetected.current) setStep("no-ext");
     }, 2000);
+
     return () => {
       window.removeEventListener("message", onMessage);
       if (extTimeoutRef.current) clearTimeout(extTimeoutRef.current);
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const invalid = meta && (meta.expired || meta.revoked || meta.maxUsesReached);
   const hubConfigError = validateHubPublicBaseUrl();
   const recentSuccess = token ? getOAuthSuccess(token) : null;
   const hubStartUrl = token && !hubConfigError ? oauthStartUrl(token) : undefined;
+
+  async function handlePickAccount(session: XSession) {
+    if (!token) return;
+    setSelectedSession(session);
+    setStep("creating");
+    setFlowError(null);
+    try {
+      const result = await connectAttemptApi.create(token, session.authToken, session.ct0, session.twuid);
+      setNonce(result.nonce);
+      setStep("enter-pin");
+    } catch (err) {
+      setFlowError(errorMessage(err));
+      setStep("error");
+    }
+  }
+
+  async function handleValidatePin() {
+    if (!nonce) return;
+    const trimmed = pin.trim();
+    if (!/^\d{4,8}$/.test(trimmed)) {
+      setPinError("PIN must be 4–8 digits.");
+      return;
+    }
+    setPinError(null);
+    setStep("validating");
+    try {
+      await connectAttemptApi.validatePin(nonce, trimmed);
+      // Redirect to Twitter OAuth — this navigates away from the page.
+      window.location.href = connectAttemptApi.oauthStartUrl(nonce);
+    } catch (err) {
+      setPinError(errorMessage(err));
+      setStep("enter-pin");
+    }
+  }
+
+  function resetFlow() {
+    extDetected.current = false;
+    sessionsRef.current = [];
+    setSessions([]);
+    setSelectedSession(null);
+    setNonce(null);
+    setPin("");
+    setPinError(null);
+    setFlowError(null);
+    setStep("detecting");
+    extTimeoutRef.current = setTimeout(() => {
+      if (!extDetected.current) setStep("no-ext");
+    }, 2000);
+  }
+
+  // ── Early exits for invalid / already-connected states ──────────────────
 
   if (loading) {
     return <p className="text-muted-foreground text-center">Loading invite…</p>;
@@ -88,6 +181,7 @@ export function ConnectPage() {
     );
   }
 
+  const invalid = meta && (meta.expired || meta.revoked || meta.maxUsesReached);
   if (invalid && meta) {
     const usedSuccessfully =
       meta.maxUsesReached && (meta.useCount ?? 0) > 0 && !meta.expired && !meta.revoked;
@@ -131,9 +225,10 @@ export function ConnectPage() {
     );
   }
 
+  // ── Main connect flow ────────────────────────────────────────────────────
+
   return (
     <>
-      {/* Meta tags for the extension content script. */}
       {token && (
         <>
           <meta id="omnibot-invite-token" content={token} />
@@ -151,7 +246,13 @@ export function ConnectPage() {
         <CardContent className="space-y-4">
           <ErrorAlert error={hubConfigError ?? error} />
 
-          {extensionDetected === false && (
+          {/* ── Step: detecting extension ── */}
+          {step === "detecting" && (
+            <p className="text-sm text-muted-foreground">Checking for extension…</p>
+          )}
+
+          {/* ── Step: no extension ── */}
+          {step === "no-ext" && (
             <div className="rounded-lg border border-border bg-muted/40 p-4 space-y-3 text-sm">
               <p className="font-medium text-foreground">Install the Omnibot X Connector</p>
               <p className="text-muted-foreground">
@@ -173,45 +274,100 @@ export function ConnectPage() {
             </div>
           )}
 
-          {extensionDetected === true && (
-            <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-2 text-sm">
-              <p className="font-medium text-foreground">Extension detected</p>
-              <p className="text-muted-foreground">
-                Open the <strong className="text-foreground">Omnibot X Connector</strong> popup in
-                your browser toolbar, select the X account to connect, enter your XChat PIN, then
-                authorize with X.
-              </p>
+          {/* ── Step: pick account ── */}
+          {step === "pick-account" && (
+            <div className="space-y-3">
+              <p className="text-sm font-medium text-foreground">Step 1 — Select your X account</p>
+              {sessions.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No X sessions found. Make sure you are logged into x.com in this browser.
+                </p>
+              ) : (
+                sessions.map(session => (
+                  <button
+                    key={session.twuid}
+                    onClick={() => handlePickAccount(session)}
+                    className="w-full text-left rounded-lg border border-border bg-card hover:bg-muted/50 p-4 transition-colors"
+                  >
+                    <p className="text-sm font-medium text-foreground">@{session.twuid}</p>
+                    <p className="text-xs text-muted-foreground">ID: {session.twuid}</p>
+                  </button>
+                ))
+              )}
             </div>
           )}
 
-          {extensionDetected === null && (
-            <p className="text-sm text-muted-foreground">Checking for extension…</p>
+          {/* ── Step: creating attempt ── */}
+          {step === "creating" && (
+            <p className="text-sm text-muted-foreground">Starting connection…</p>
           )}
 
-          <div className="border-t border-border pt-4 space-y-3">
-            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
-              Authorize without extension
-            </p>
-            <div className="rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground space-y-2">
-              <p>
-                <strong className="text-foreground">Already logged into X?</strong> That only means you are signed in
-                at x.com. You still need to tap the button below and{" "}
-                <strong className="text-foreground">authorize this app</strong> on the X screen.
+          {/* ── Step: enter PIN ── */}
+          {step === "enter-pin" && selectedSession && (
+            <div className="space-y-3">
+              <p className="text-sm font-medium text-foreground">Step 2 — Enter XChat PIN</p>
+              <p className="text-sm text-muted-foreground">
+                Enter the XChat PIN for account <strong className="text-foreground">@{selectedSession.twuid}</strong>.
               </p>
-              <p>Each invite links one X account to this organization. No dashboard login is required.</p>
+              <Input
+                type="password"
+                inputMode="numeric"
+                placeholder="4–8 digit PIN"
+                maxLength={8}
+                value={pin}
+                onChange={e => setPin(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") void handleValidatePin(); }}
+                autoFocus
+              />
+              {pinError && <p className="text-sm text-destructive">{pinError}</p>}
+              <Button onClick={() => void handleValidatePin()} className="w-full">
+                Validate PIN &amp; Authorize with X
+              </Button>
             </div>
-            {hubStartUrl ? (
-              <Button className="w-full" size="lg" asChild>
-                <a href={hubStartUrl} rel="noopener noreferrer">
+          )}
+
+          {/* ── Step: validating PIN ── */}
+          {step === "validating" && (
+            <p className="text-sm text-muted-foreground">Validating PIN and redirecting to X…</p>
+          )}
+
+          {/* ── Step: error ── */}
+          {step === "error" && (
+            <div className="space-y-3">
+              <ErrorAlert error={flowError ?? "An error occurred."} />
+              <Button variant="outline" onClick={resetFlow} className="w-full">
+                Try again
+              </Button>
+            </div>
+          )}
+
+          {/* ── Fallback: authorize without extension ── */}
+          {(step === "no-ext") && (
+            <div className="border-t border-border pt-4 space-y-3">
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
+                Authorize without extension
+              </p>
+              <div className="rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground space-y-2">
+                <p>
+                  <strong className="text-foreground">Already logged into X?</strong> That only means you are signed in
+                  at x.com. You still need to tap the button below and{" "}
+                  <strong className="text-foreground">authorize this app</strong> on the X screen.
+                </p>
+                <p>Each invite links one X account to this organization. No dashboard login is required.</p>
+              </div>
+              {hubStartUrl ? (
+                <Button className="w-full" size="lg" asChild>
+                  <a href={hubStartUrl} rel="noopener noreferrer">
+                    Authorize with X
+                  </a>
+                </Button>
+              ) : (
+                <Button className="w-full" size="lg" disabled>
                   Authorize with X
-                </a>
-              </Button>
-            ) : (
-              <Button className="w-full" size="lg" disabled>
-                Authorize with X
-              </Button>
-            )}
-          </div>
+                </Button>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     </>

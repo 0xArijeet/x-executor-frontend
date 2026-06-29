@@ -1,4 +1,4 @@
-import { hubFetch, HubApiError } from "./client";
+import { hubFetch, HubApiError, apiBase } from "./client";
 import { userFromAccessToken } from "@/lib/auth/jwt";
 import type {
   AuthResponse,
@@ -172,8 +172,7 @@ export const connectAttemptApi = {
   },
   /** Returns the URL to open so the user completes X OAuth (step 3). */
   oauthStartUrl(nonce: string): string {
-    const base = typeof window !== "undefined" ? window.location.origin : "";
-    return `${base}/api/hub/x/connect-attempt/${encodeURIComponent(nonce)}/oauth-start`;
+    return `${apiBase()}/api/hub/x/connect-attempt/${encodeURIComponent(nonce)}/oauth-start`;
   },
 };
 
