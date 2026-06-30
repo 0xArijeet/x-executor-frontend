@@ -7,7 +7,11 @@ import { PostCoachBadge } from "@/components/content/PostCoachBadge";
 import type { AngleType, CoachResult, DraftVersion } from "@/lib/content-engine/types";
 import { ErrorAlert } from "@/components/ErrorAlert";
 
-const ANGLE_TYPES: AngleType[] = ["product", "authentic", "founder", "default"];
+const ANGLE_TYPES_BY_TAB: Record<string, AngleType[]> = {
+  industry: ["product", "authentic"],
+  custom: ["authentic"],
+  product: ["founder"],
+};
 
 function CharCount({ text }: { text: string }) {
   const len = text.length;
@@ -42,6 +46,10 @@ export function ContentComposePage() {
     : undefined;
   const categoriesRaw = searchParams.get("categories");
   const trendCategories = categoriesRaw ? (JSON.parse(categoriesRaw) as string[]) : undefined;
+  const trendTab = searchParams.get("trendTab") as "industry" | "custom" | "product" | null;
+  const availableAngles: AngleType[] = trendTab
+    ? (ANGLE_TYPES_BY_TAB[trendTab] ?? ["product", "authentic", "founder"])
+    : ["product", "authentic", "founder"];
   const [userIdea, setUserIdea] = useState("");
   const [tweetText, setTweetText] = useState(searchParams.get("draftText") ?? "");
   // Session-local version history (most recent first). When editing an existing draft,
@@ -126,6 +134,8 @@ export function ContentComposePage() {
           text: tweetText,
           score: coach?.score,
           verdict: coach?.verdict,
+          angle,
+          angleType,
         });
         setSavedDraftId(draft._id);
         setSuccessMsg("Draft updated.");
@@ -236,22 +246,24 @@ export function ContentComposePage() {
                 placeholder="What angle do you want to take?"
               />
             </div>
-            <div className="flex gap-2">
-              {ANGLE_TYPES.map((at) => (
-                <button
-                  key={at}
-                  type="button"
-                  onClick={() => setAngleType(at)}
-                  className={`rounded-full border px-3 py-1 text-xs font-medium capitalize transition-colors ${
-                    angleType === at
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border text-muted-foreground hover:border-foreground"
-                  }`}
-                >
-                  {at}
-                </button>
-              ))}
-            </div>
+            {availableAngles.length > 1 && (
+              <div className="flex gap-2">
+                {availableAngles.map((at) => (
+                  <button
+                    key={at}
+                    type="button"
+                    onClick={() => setAngleType(at)}
+                    className={`rounded-full border px-3 py-1 text-xs font-medium capitalize transition-colors ${
+                      angleType === at
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border text-muted-foreground hover:border-foreground"
+                    }`}
+                  >
+                    {at}
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="space-y-1.5">
               <label className="text-xs font-medium">Your own idea (optional)</label>
               <input

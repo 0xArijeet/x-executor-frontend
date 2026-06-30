@@ -139,7 +139,7 @@ export const draftsApi = {
   update(
     orgId: string,
     draftId: string,
-    changes: { text?: string; score?: number; verdict?: string; status?: "draft" | "posted" },
+    changes: { text?: string; score?: number; verdict?: string; status?: "draft" | "posted"; angle?: string; angleType?: string },
   ) {
     return ceFetch<ContentDraft>(`/${orgId}/drafts/${draftId}`, {
       method: "PATCH",

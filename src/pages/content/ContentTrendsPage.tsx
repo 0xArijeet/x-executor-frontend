@@ -145,9 +145,10 @@ export function ContentTrendsPage() {
     angle: string,
     angleType: AngleType,
     title: string,
+    trendTab: "industry" | "custom" | "product",
     meta?: { sentiment?: string; trendSummary?: string; dataPoints?: { fact: string; source?: string }[]; categories?: string[] },
   ) {
-    const params = new URLSearchParams({ topic: title, angle, angleType });
+    const params = new URLSearchParams({ topic: title, angle, angleType, trendTab });
     if (meta?.sentiment) params.set("sentiment", meta.sentiment);
     if (meta?.trendSummary) params.set("trendSummary", meta.trendSummary);
     if (meta?.dataPoints?.length) params.set("dataPoints", JSON.stringify(meta.dataPoints));
@@ -258,7 +259,7 @@ export function ContentTrendsPage() {
           {industry.loading ? <TabSkeleton /> : (
             <div className="space-y-3">
               {industry.topics.map((t) => (
-                <IndustryTrendCard key={t.id} topic={t} onSelectAngle={handleSelectAngle} />
+                <IndustryTrendCard key={t.id} topic={t} onSelectAngle={(angle, angleType, title, meta) => handleSelectAngle(angle, angleType, title, "industry", meta)} />
               ))}
               {industry.topics.length === 0 && (
                 <p className="py-12 text-center text-sm text-muted-foreground">No trends loaded yet. Click refresh to fetch from Grok.</p>
@@ -287,7 +288,7 @@ export function ContentTrendsPage() {
           {custom.loading ? <TabSkeleton /> : (
             <div className="space-y-3">
               {custom.topics.map((t) => (
-                <IndustryTrendCard key={t.id} topic={t} onSelectAngle={handleSelectAngle} />
+                <IndustryTrendCard key={t.id} topic={t} onSelectAngle={(angle, angleType, title, meta) => handleSelectAngle(angle, angleType, title, "custom", meta)} />
               ))}
             </div>
           )}
@@ -314,7 +315,7 @@ export function ContentTrendsPage() {
           {product.loading ? <TabSkeleton /> : (
             <div className="space-y-3">
               {product.topics.map((t) => (
-                <ProductTrendCard key={t.id} topic={t} onSelectAngle={handleSelectAngle} />
+                <ProductTrendCard key={t.id} topic={t} onSelectAngle={(angle, angleType, title, meta) => handleSelectAngle(angle, angleType, title, "product", meta)} />
               ))}
             </div>
           )}
