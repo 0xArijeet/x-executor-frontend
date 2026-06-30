@@ -16,16 +16,22 @@ export function DraftCard({ draft, onEdit, onDelete, onUseVersion, deleting }: D
   const sortedVersions = [...(draft.versions ?? [])].reverse();
 
   return (
-    <div className="rounded-lg border border-border p-4 space-y-3">
-      <p className="text-sm leading-snug line-clamp-3 whitespace-pre-line">{draft.text}</p>
+    <div className="rounded-lg border border-border bg-card divide-y divide-border">
+      {/* Current draft text */}
+      <div className="p-4">
+        <p className="text-sm leading-relaxed whitespace-pre-line">{draft.text}</p>
+      </div>
 
-      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+      {/* Metadata row */}
+      <div className="px-4 py-2.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         {draft.score > 0 && <PostCoachBadge score={draft.score} size="sm" />}
         {draft.topic && (
-          <span className="rounded-full bg-muted px-2 py-0.5">{draft.topic}</span>
+          <span className="rounded-full bg-muted px-2 py-0.5 font-medium text-foreground/70">
+            {draft.topic}
+          </span>
         )}
         {draft.categories?.map((cat) => (
-          <span key={cat} className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">
+          <span key={cat} className="rounded-full border border-border px-2 py-0.5">
             {cat}
           </span>
         ))}
@@ -38,12 +44,12 @@ export function DraftCard({ draft, onEdit, onDelete, onUseVersion, deleting }: D
           <button
             type="button"
             onClick={() => setShowVersions((v) => !v)}
-            className="opacity-60 hover:opacity-100 underline underline-offset-2"
+            className="rounded-full border border-border px-2.5 py-0.5 text-xs hover:bg-muted transition-colors"
           >
             v1 → v{sortedVersions.length} {showVersions ? "▲" : "▼"}
           </button>
         )}
-        <span className="opacity-60 ml-auto">
+        <span className="ml-auto opacity-60">
           {new Date(draft.createdAt).toLocaleDateString(undefined, {
             month: "short",
             day: "numeric",
@@ -51,64 +57,81 @@ export function DraftCard({ draft, onEdit, onDelete, onUseVersion, deleting }: D
         </span>
       </div>
 
+      {/* Version history */}
       {showVersions && sortedVersions.length > 1 && (
-        <div className="space-y-2 border-t border-border pt-3">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+        <div className="px-4 py-3 space-y-3">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Version history
           </p>
-          {sortedVersions.map((v, i) => {
-            const vNum = sortedVersions.length - i;
-            const isCurrent = i === 0;
-            return (
-              <div
-                key={i}
-                className={cn(
-                  "rounded-md border px-3 py-2 space-y-1.5",
-                  isCurrent ? "border-primary/30 bg-primary/5" : "border-border bg-muted/20",
-                )}
-              >
-                <div className="flex items-center gap-2">
-                  <span
+          <div className="space-y-2">
+            {sortedVersions.map((v, i) => {
+              const vNum = sortedVersions.length - i;
+              const isCurrent = i === 0;
+              return (
+                <div
+                  key={i}
+                  className={cn(
+                    "rounded-lg border overflow-hidden",
+                    isCurrent ? "border-primary/40" : "border-border",
+                  )}
+                >
+                  {/* Version header */}
+                  <div
                     className={cn(
-                      "rounded-full px-2 py-0.5 text-xs font-semibold",
-                      isCurrent
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground",
+                      "flex items-center gap-2 px-3 py-2",
+                      isCurrent ? "bg-primary/8" : "bg-muted/30",
                     )}
                   >
-                    v{vNum}{isCurrent ? " · Current" : ""}
-                  </span>
-                  {v.score > 0 && <PostCoachBadge score={v.score} size="sm" />}
-                  <span className="text-xs text-muted-foreground ml-auto">
-                    {new Date(v.createdAt).toLocaleString(undefined, {
-                      month: "short",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
+                    <span
+                      className={cn(
+                        "rounded-full px-2 py-0.5 text-xs font-semibold shrink-0",
+                        isCurrent
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted-foreground/15 text-muted-foreground",
+                      )}
+                    >
+                      v{vNum}{isCurrent ? " · Current" : ""}
+                    </span>
+                    {v.score > 0 && <PostCoachBadge score={v.score} size="sm" />}
+                    <span className="text-xs text-muted-foreground ml-auto">
+                      {new Date(v.createdAt).toLocaleString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+
+                  {/* Tweet text — full, not clamped */}
+                  <div className="px-3 py-2.5 bg-background">
+                    <p className="text-xs leading-relaxed whitespace-pre-line text-foreground/80">
+                      {v.text}
+                    </p>
+                  </div>
+
+                  {/* Action row for older versions */}
+                  {!isCurrent && onUseVersion && (
+                    <div className="px-3 py-2 border-t border-border bg-muted/10 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => onUseVersion(v.text, vNum)}
+                        className="rounded border border-primary px-3 py-1 text-xs font-medium text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
+                      >
+                        Use this version
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <p className="text-xs text-muted-foreground line-clamp-2 whitespace-pre-line">
-                  {v.text}
-                </p>
-                {!isCurrent && onUseVersion && (
-                  <button
-                    type="button"
-                    onClick={() => onUseVersion(v.text, vNum)}
-                    className="text-xs text-primary hover:underline"
-                  >
-                    Use this version
-                  </button>
-                )}
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       )}
 
-      {/* Trend context: sentiment + data points captured at compose time */}
+      {/* Trend context */}
       {(draft.sentiment || draft.dataPoints?.length) && (
-        <div className="space-y-1.5 rounded-md border border-border bg-muted/20 px-3 py-2">
+        <div className="px-4 py-3 space-y-1.5">
           <div className="flex items-center gap-2 flex-wrap">
             {draft.sentiment && (
               <span
@@ -141,11 +164,12 @@ export function DraftCard({ draft, onEdit, onDelete, onUseVersion, deleting }: D
         </div>
       )}
 
-      <div className="flex gap-2">
+      {/* Actions */}
+      <div className="px-4 py-3 flex gap-2">
         <button
           type="button"
           onClick={() => onEdit(draft)}
-          className="rounded border border-border px-3 py-1 text-xs font-medium hover:bg-muted"
+          className="rounded bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
         >
           Edit
         </button>
@@ -155,7 +179,7 @@ export function DraftCard({ draft, onEdit, onDelete, onUseVersion, deleting }: D
           onClick={() => {
             if (confirm("Delete this draft?")) onDelete(draft._id);
           }}
-          className="rounded border border-destructive/30 px-3 py-1 text-xs font-medium text-destructive hover:bg-destructive/10 disabled:opacity-50"
+          className="rounded border border-destructive/40 px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10 disabled:opacity-50 transition-colors"
         >
           {deleting ? "Deleting…" : "Delete"}
         </button>
