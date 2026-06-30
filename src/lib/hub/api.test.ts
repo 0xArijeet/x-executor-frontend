@@ -59,12 +59,15 @@ test("invitesApi.getPublic GETs public invite metadata", async () => {
 test("campaignsApi.list GETs campaigns", async () => {
   const fetchMock = mock(async (input: RequestInfo | URL) => {
     expect(String(input)).toContain("/api/hub/x/campaigns");
-    return jsonResponse([{ id: "camp-1", name: "Q1 outreach", status: "running" }]);
+    return jsonResponse({
+      data: [{ id: "camp-1", name: "Q1 outreach", status: "running" }],
+      stats: { total: 1, active: 1, totalProspects: 0, totalSent: 0, totalReplies: 0 },
+    });
   });
   globalThis.fetch = fetchMock as typeof fetch;
 
   const result = await campaignsApi.list("jwt-test");
-  expect(result[0]?.name).toBe("Q1 outreach");
+  expect(result.data[0]?.name).toBe("Q1 outreach");
 });
 
 test("campaignsApi.create POSTs campaign with bearer token", async () => {

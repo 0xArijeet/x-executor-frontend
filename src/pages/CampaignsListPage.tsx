@@ -11,7 +11,7 @@ import {
   isCampaignPolling,
 } from "@/lib/campaign-utils";
 import { campaignsApi } from "@/lib/hub/api";
-import type { CampaignSummary } from "@/lib/hub/types";
+import type { CampaignListStats, CampaignSummary } from "@/lib/hub/types";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
@@ -19,8 +19,14 @@ export function CampaignsListPage() {
   const { orgId } = useParams<{ orgId: string }>();
   const { token } = useAuth();
   const [campaigns, setCampaigns] = useState<CampaignSummary[]>([]);
+  const [stats, setStats] = useState<CampaignListStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  function applyResponse(res: { data: CampaignSummary[]; stats: CampaignListStats }) {
+    setCampaigns(res.data);
+    setStats(res.stats);
+  }
 
   useEffect(() => {
     if (!token) return;
@@ -28,7 +34,7 @@ export function CampaignsListPage() {
     setError(null);
     campaignsApi
       .list(token)
-      .then(setCampaigns)
+      .then(applyResponse)
       .catch(err => setError(errorMessage(err)))
       .finally(() => setLoading(false));
   }, [token]);
@@ -42,7 +48,7 @@ export function CampaignsListPage() {
     const id = setInterval(() => {
       campaignsApi
         .list(token)
-        .then(setCampaigns)
+        .then(applyResponse)
         .catch(() => undefined);
     }, 15_000);
     return () => clearInterval(id);
@@ -65,6 +71,22 @@ export function CampaignsListPage() {
       </div>
 
       <ErrorAlert error={error} />
+
+      {stats && (
+        <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[
+            { label: "Campaigns", value: stats.total },
+            { label: "Active", value: stats.active },
+            { label: "Total sent", value: stats.totalSent.toLocaleString() },
+            { label: "Total replies", value: stats.totalReplies.toLocaleString() },
+          ].map(({ label, value }) => (
+            <div key={label} className="rounded-lg border border-border bg-card px-4 py-3">
+              <p className="text-xs text-muted-foreground">{label}</p>
+              <p className="text-xl font-semibold">{value}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
       {loading ? (
         <p className="text-muted-foreground">Loading campaigns…</p>
