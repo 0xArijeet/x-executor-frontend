@@ -6,6 +6,7 @@ import type {
   CreateInviteInput,
   Invite,
   InvitePublic,
+  OnboardingInput,
   Organization,
   UpdatePromptInput,
   UpdateConversationGoalInput,
@@ -132,6 +133,16 @@ export const xSettingsApi = {
 
 /** @deprecated Use xSettingsApi — kept for gradual migration. */
 export const orgsApi = xSettingsApi;
+
+export const onboardingApi = {
+  complete(token: string, input: OnboardingInput) {
+    return hubFetch<{ ok: boolean }>("/auth/onboarding", {
+      method: "PATCH",
+      token,
+      body: JSON.stringify(input),
+    });
+  },
+};
 
 export const invitesApi = {
   getPublic(token: string) {

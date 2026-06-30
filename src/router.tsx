@@ -8,6 +8,7 @@ import { CampaignsListPage } from "@/pages/CampaignsListPage";
 import { ChatDetailPage } from "@/pages/ChatDetailPage";
 import { ChatsListPage } from "@/pages/ChatsListPage";
 import { ConnectPage } from "@/pages/ConnectPage";
+import { OnboardingPage } from "@/pages/OnboardingPage";
 import { LeadListCreatePage } from "@/pages/LeadListCreatePage";
 import { LeadListDetailPage } from "@/pages/LeadListDetailPage";
 import { LeadsListPage } from "@/pages/LeadsListPage";
@@ -45,6 +46,14 @@ const router = createBrowserRouter([
     path: "/oauth/success",
     element: <PublicShell />,
     children: [{ index: true, element: <OAuthSuccessPage /> }],
+  },
+  {
+    path: "/onboarding",
+    element: (
+      <RequireAuth>
+        <OnboardingPage />
+      </RequireAuth>
+    ),
   },
   {
     path: "/",

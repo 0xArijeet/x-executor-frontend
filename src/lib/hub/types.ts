@@ -4,6 +4,15 @@ export type User = {
   id: string;
   email: string;
   orgId: string;
+  onboardingCompleted?: boolean;
+};
+
+export type OnboardingInput = {
+  workspaceName: string;
+  website?: string;
+  teamSize?: string;
+  userRole?: string;
+  userGoal?: string;
 };
 
 export type AuthResponse = {
