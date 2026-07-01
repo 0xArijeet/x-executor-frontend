@@ -193,7 +193,7 @@ export function ConnectPage() {
   const invalid = meta && (meta.expired || meta.revoked || meta.maxUsesReached);
   if (invalid && meta) {
     const usedSuccessfully =
-      meta.maxUsesReached && (meta.useCount ?? 0) > 0 && !meta.expired && !meta.revoked;
+      meta.maxUsesReached && meta.connected > 0 && !meta.expired && !meta.revoked;
 
     if (usedSuccessfully) {
       return (

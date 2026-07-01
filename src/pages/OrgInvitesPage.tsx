@@ -43,13 +43,11 @@ export function OrgInvitesPage() {
     const formEl = e.currentTarget;
     const form = new FormData(formEl);
     const expiresRaw = form.get("expiresInHours") as string;
-    const maxUsesRaw = form.get("maxUses") as string;
     setError(null);
     setCreating(true);
     try {
       await invitesApi.create(token, {
         ...(expiresRaw ? { expiresInHours: Number(expiresRaw) } : {}),
-        ...(maxUsesRaw ? { maxUses: Number(maxUsesRaw) } : {}),
       });
       formEl.reset();
       load();
@@ -84,7 +82,7 @@ export function OrgInvitesPage() {
     setQuickInvite(null);
     setError(null);
     try {
-      const inv = await invitesApi.create(token, { expiresInHours: 0.5, maxUses: 1 });
+      const inv = await invitesApi.create(token, { expiresInHours: 0.5 });
       setQuickInvite(inv);
       load();
     } catch (err) {
@@ -149,17 +147,13 @@ export function OrgInvitesPage() {
       <Card className="mb-6">
         <CardHeader>
           <CardTitle className="text-lg">Create invite</CardTitle>
-          <CardDescription>Defaults: 168 hours expiry, unlimited uses.</CardDescription>
+          <CardDescription>Each invite allows exactly 1 connection. Default expiry: 168 hours.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={onCreate} className="flex flex-wrap items-end gap-4">
             <div className="space-y-2">
               <Label htmlFor="expiresInHours">Expires (hours)</Label>
               <Input id="expiresInHours" name="expiresInHours" type="number" min={1} placeholder="168" className="w-28" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="maxUses">Max uses</Label>
-              <Input id="maxUses" name="maxUses" type="number" min={1} placeholder="∞" className="w-28" />
             </div>
             <Button type="submit" disabled={creating}>
               {creating ? "Creating…" : "Create invite"}
@@ -183,10 +177,14 @@ export function OrgInvitesPage() {
                   <CardTitle className="text-base font-mono text-sm">{inv.inviteToken.slice(0, 12)}…</CardTitle>
                   <div className="flex gap-2">
                     {inv.expired && <Badge variant="destructive">Expired</Badge>}
-                    {inv.maxUses != null && (
-                      <Badge variant="outline">
-                        {inv.useCount ?? 0}/{inv.maxUses} uses
-                      </Badge>
+                    {inv.connected > 0 && (
+                      <Badge variant="secondary">{inv.connected} connected</Badge>
+                    )}
+                    {inv.revoked > 0 && (
+                      <Badge variant="outline">{inv.revoked} revoked</Badge>
+                    )}
+                    {inv.connected === 0 && inv.revoked === 0 && !inv.expired && (
+                      <Badge variant="outline">Unused</Badge>
                     )}
                   </div>
                 </div>

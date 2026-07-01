@@ -99,8 +99,8 @@ export type Invite = {
   inviteUrl: string;
   connectUrl?: string;
   expiresAt: string;
-  maxUses?: number;
-  useCount?: number;
+  connected: number;
+  revoked: number;
   expired?: boolean;
   createdAt?: string;
 };
@@ -113,8 +113,8 @@ export type InvitePublic = {
   expired: boolean;
   revoked: boolean;
   maxUsesReached: boolean;
-  useCount?: number;
-  maxUses?: number | null;
+  connected: number;
+  revoked_connections: number;
 };
 
 export type Connection = {
@@ -141,7 +141,6 @@ export type ValidateConnectionResponse = {
 
 export type CreateInviteInput = {
   expiresInHours?: number;
-  maxUses?: number;
 };
 
 export type UpdatePromptInput = {
