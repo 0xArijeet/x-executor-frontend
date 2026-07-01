@@ -190,10 +190,9 @@ export function ConnectPage() {
     );
   }
 
-  const invalid = meta && (meta.expired || meta.revoked || meta.maxUsesReached);
+  const invalid = meta && (meta.expired || meta.revoked || meta.connected);
   if (invalid && meta) {
-    const usedSuccessfully =
-      meta.maxUsesReached && meta.connected > 0 && !meta.expired && !meta.revoked;
+    const usedSuccessfully = meta.connected && !meta.expired && !meta.revoked;
 
     if (usedSuccessfully) {
       return (
@@ -220,7 +219,7 @@ export function ConnectPage() {
       ? "This invite has been revoked."
       : meta.expired
         ? "This invite has expired."
-        : "This invite has reached its maximum number of uses.";
+        : "This invite has already been used.";
     return (
       <Card>
         <CardHeader>

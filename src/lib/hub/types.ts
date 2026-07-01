@@ -112,9 +112,7 @@ export type InvitePublic = {
   orgName: string;
   expired: boolean;
   revoked: boolean;
-  maxUsesReached: boolean;
-  connected: number;
-  revoked_connections: number;
+  connected: boolean;
 };
 
 export type Connection = {
