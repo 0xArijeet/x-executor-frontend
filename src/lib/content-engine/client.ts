@@ -1,3 +1,5 @@
+import { getToken } from "@/lib/auth/storage";
+
 const CE_PREFIX = "/api/content-engine";
 
 export class ContentEngineApiError extends Error {
@@ -22,12 +24,14 @@ export async function ceFetch<T>(
   options: RequestInit = {},
 ): Promise<T> {
   const { headers, ...rest } = options;
+  const token = getToken();
   const url = `${apiBase()}${CE_PREFIX}${path}`;
 
   const res = await fetch(url, {
     ...rest,
     headers: {
       "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...headers,
     },
   });
