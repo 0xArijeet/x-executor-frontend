@@ -38,6 +38,7 @@ export function TeamPage() {
   const [inviting, setInviting] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [updatingSeats, setUpdatingSeats] = useState(false);
+  const [pendingPaymentUrl, setPendingPaymentUrl] = useState<string | null>(null);
 
   function load() {
     if (!token) return;
@@ -88,12 +89,15 @@ export function TeamPage() {
     const seatCount = Number(form.get("seatCount"));
     if (!Number.isInteger(seatCount) || seatCount < 1) return;
     setError(null);
+    setPendingPaymentUrl(null);
     setUpdatingSeats(true);
     try {
-      if (!billing || billing.purchasedSeats === 0) {
-        await orgSeatsApi.buy(token, seatCount);
-      } else {
-        await orgSeatsApi.add(token, seatCount);
+      const result =
+        !billing || billing.purchasedSeats === 0
+          ? await orgSeatsApi.buy(token, seatCount)
+          : await orgSeatsApi.add(token, seatCount);
+      if (result.invoiceStatus && result.invoiceStatus !== "paid" && result.hostedInvoiceUrl) {
+        setPendingPaymentUrl(result.hostedInvoiceUrl);
       }
       load();
     } catch (err) {
@@ -202,6 +206,20 @@ export function TeamPage() {
               {updatingSeats ? "Updating…" : "Update seats"}
             </Button>
           </form>
+
+          {pendingPaymentUrl && (
+            <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+              <p className="mb-2">
+                We couldn't automatically charge the card on file for the updated seat
+                count. Complete payment to keep this seat count active:
+              </p>
+              <Button size="sm" asChild>
+                <a href={pendingPaymentUrl} target="_blank" rel="noopener noreferrer">
+                  Pay now
+                </a>
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 

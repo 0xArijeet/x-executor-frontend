@@ -182,6 +182,13 @@ export type SeatsBillingSummary = {
   purchasedSeats: number;
 };
 
+export type UpdateSeatsResponse = {
+  purchasedSeats: number;
+  seatStripeItemId: string;
+  invoiceStatus: string | null;
+  hostedInvoiceUrl: string | null;
+};
+
 export type UpdatePromptInput = {
   systemPrompt?: string;
   llmModel?: string;
