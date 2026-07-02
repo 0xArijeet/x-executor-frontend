@@ -8,6 +8,9 @@ import type {
   CreateInviteInput,
   Invite,
   InvitePublic,
+  TeamInvite,
+  OrgTeamMember,
+  CreateTeamInviteInput,
   OnboardingInput,
   Organization,
   UpdatePromptInput,
@@ -191,6 +194,34 @@ export const invitesApi = {
   },
   revoke(token: string, inviteId: string) {
     return hubFetch<{ revoked: boolean }>(`/x/invites/${encodeURIComponent(inviteId)}`, {
+      method: "DELETE",
+      token,
+    });
+  },
+};
+
+export const orgMembersApi = {
+  listMembers(token: string) {
+    return hubFetch<OrgTeamMember[]>("/org/members", { token });
+  },
+  listInvites(token: string) {
+    return hubFetch<TeamInvite[]>("/org/invites", { token });
+  },
+  createInvite(token: string, input: CreateTeamInviteInput) {
+    return hubFetch<TeamInvite>("/org/invites", {
+      method: "POST",
+      token,
+      body: JSON.stringify(input),
+    });
+  },
+  revokeInvite(token: string, inviteId: string) {
+    return hubFetch<{ revoked: boolean }>(`/org/invites/${encodeURIComponent(inviteId)}`, {
+      method: "DELETE",
+      token,
+    });
+  },
+  removeMember(token: string, userId: string) {
+    return hubFetch<{ removed: boolean }>(`/org/members/${encodeURIComponent(userId)}`, {
       method: "DELETE",
       token,
     });

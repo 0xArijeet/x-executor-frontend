@@ -20,6 +20,7 @@ import { OrgSettingsPage } from "@/pages/OrgSettingsPage";
 import { OrgsListPage } from "@/pages/OrgsListPage";
 import { PurchasePlanPage } from "@/pages/PurchasePlanPage";
 import { RegisterPage } from "@/pages/RegisterPage";
+import { TeamPage } from "@/pages/TeamPage";
 import { ContentProfilePage } from "@/pages/content/ContentProfilePage";
 import { ContentTrendsPage } from "@/pages/content/ContentTrendsPage";
 import { ContentComposePage } from "@/pages/content/ContentComposePage";
@@ -148,6 +149,14 @@ const router = createBrowserRouter([
         element: (
           <RequireOrgRole adminOnly>
             <OrgInvitesPage />
+          </RequireOrgRole>
+        ),
+      },
+      {
+        path: "orgs/:orgId/team",
+        element: (
+          <RequireOrgRole adminOnly>
+            <TeamPage />
           </RequireOrgRole>
         ),
       },

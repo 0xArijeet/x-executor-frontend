@@ -152,6 +152,28 @@ export type CreateInviteInput = {
   expiresInHours?: number;
 };
 
+export type TeamInviteStatus = "pending" | "accepted" | "revoked" | "expired";
+
+export type TeamInvite = {
+  id: string;
+  email: string;
+  status: TeamInviteStatus;
+  inviteUrl?: string;
+  expiresAt: string;
+  createdAt?: string;
+};
+
+export type OrgTeamMember = {
+  userId: string;
+  email: string;
+  role: string;
+  joinedAt?: string;
+};
+
+export type CreateTeamInviteInput = {
+  email: string;
+};
+
 export type UpdatePromptInput = {
   systemPrompt?: string;
   llmModel?: string;
