@@ -233,6 +233,20 @@ export const orgSeatsApi = {
   getBillingSummary(token: string) {
     return hubFetch<SeatsBillingSummary>("/org/seats/billing-summary", { token });
   },
+  buy(token: string, seatCount: number) {
+    return hubFetch<{ purchasedSeats: number }>("/org/seats", {
+      method: "POST",
+      token,
+      body: JSON.stringify({ seatCount }),
+    });
+  },
+  add(token: string, seatCount: number) {
+    return hubFetch<{ purchasedSeats: number }>("/org/seats", {
+      method: "PATCH",
+      token,
+      body: JSON.stringify({ seatCount }),
+    });
+  },
 };
 
 export const connectAttemptApi = {

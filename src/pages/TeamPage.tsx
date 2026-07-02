@@ -37,6 +37,7 @@ export function TeamPage() {
   const [error, setError] = useState<string | null>(null);
   const [inviting, setInviting] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [updatingSeats, setUpdatingSeats] = useState(false);
 
   function load() {
     if (!token) return;
@@ -80,6 +81,28 @@ export function TeamPage() {
     }
   }
 
+  async function onUpdateSeats(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!token) return;
+    const form = new FormData(e.currentTarget);
+    const seatCount = Number(form.get("seatCount"));
+    if (!Number.isInteger(seatCount) || seatCount < 1) return;
+    setError(null);
+    setUpdatingSeats(true);
+    try {
+      if (!billing || billing.purchasedSeats === 0) {
+        await orgSeatsApi.buy(token, seatCount);
+      } else {
+        await orgSeatsApi.add(token, seatCount);
+      }
+      load();
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setUpdatingSeats(false);
+    }
+  }
+
   async function handleRevoke(inviteId: string) {
     if (!token) return;
     if (!confirm("Revoke this invite?")) return;
@@ -117,7 +140,7 @@ export function TeamPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-semibold">Team</h1>
         <p className="text-muted-foreground">
-          Invite teammates to your organization. Each invite reserves a paid seat.
+          Buy seats for your organization, then invite teammates to fill them.
         </p>
       </div>
 
@@ -127,11 +150,12 @@ export function TeamPage() {
         <CardHeader>
           <CardTitle className="text-lg">Billing</CardTitle>
           <CardDescription>
-            Order summary for your subscription, including per-seat charges. Sending or
-            revoking invites updates this immediately.
+            Order summary for your subscription, including per-seat charges. Seat
+            purchases are prorated immediately for the remaining days in the current
+            billing cycle, whether it's your first seat or an increase.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
           {billingError ? (
             <p className="text-sm text-destructive">{billingError}</p>
           ) : !billing ? (
@@ -160,6 +184,24 @@ export function TeamPage() {
               </div>
             </div>
           )}
+
+          <form onSubmit={onUpdateSeats} className="flex flex-wrap items-end gap-4 border-t border-border pt-4">
+            <div className="space-y-2">
+              <Label htmlFor="seatCount">Total seats</Label>
+              <Input
+                id="seatCount"
+                name="seatCount"
+                type="number"
+                min={1}
+                defaultValue={billing?.purchasedSeats || 1}
+                key={billing?.purchasedSeats}
+                className="w-28"
+              />
+            </div>
+            <Button type="submit" disabled={updatingSeats}>
+              {updatingSeats ? "Updating…" : "Update seats"}
+            </Button>
+          </form>
         </CardContent>
       </Card>
 
@@ -167,7 +209,8 @@ export function TeamPage() {
         <CardHeader>
           <CardTitle className="text-lg">Invite a teammate</CardTitle>
           <CardDescription>
-            Sending an invite purchases a seat on your subscription immediately.
+            Invites fill already-purchased seats. Buy more seats above if you're at
+            capacity.
           </CardDescription>
         </CardHeader>
         <CardContent>
