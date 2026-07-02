@@ -11,6 +11,7 @@ import type {
   TeamInvite,
   OrgTeamMember,
   CreateTeamInviteInput,
+  SeatsBillingSummary,
   OnboardingInput,
   Organization,
   UpdatePromptInput,
@@ -225,6 +226,12 @@ export const orgMembersApi = {
       method: "DELETE",
       token,
     });
+  },
+};
+
+export const orgSeatsApi = {
+  getBillingSummary(token: string) {
+    return hubFetch<SeatsBillingSummary>("/org/seats/billing-summary", { token });
   },
 };
 

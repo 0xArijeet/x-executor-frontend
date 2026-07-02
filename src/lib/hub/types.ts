@@ -174,6 +174,14 @@ export type CreateTeamInviteInput = {
   email: string;
 };
 
+export type SeatsBillingSummary = {
+  currency: string;
+  currentPeriodTotal: number;
+  upcomingTotal: number;
+  currentPeriodEnd: number;
+  purchasedSeats: number;
+};
+
 export type UpdatePromptInput = {
   systemPrompt?: string;
   llmModel?: string;

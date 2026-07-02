@@ -5,8 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth/AuthContext";
-import { orgMembersApi } from "@/lib/hub/api";
-import type { OrgTeamMember, TeamInvite } from "@/lib/hub/types";
+import { orgMembersApi, orgSeatsApi } from "@/lib/hub/api";
+import type { OrgTeamMember, SeatsBillingSummary, TeamInvite } from "@/lib/hub/types";
 import { useEffect, useState, type FormEvent } from "react";
 
 function statusBadgeVariant(status: TeamInvite["status"]) {
@@ -20,10 +20,19 @@ function statusBadgeVariant(status: TeamInvite["status"]) {
   }
 }
 
+function formatMoney(amount: number, currency: string) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: currency.toUpperCase() || "USD",
+  }).format(amount);
+}
+
 export function TeamPage() {
   const { token } = useAuth();
   const [members, setMembers] = useState<OrgTeamMember[]>([]);
   const [invites, setInvites] = useState<TeamInvite[]>([]);
+  const [billing, setBilling] = useState<SeatsBillingSummary | null>(null);
+  const [billingError, setBillingError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [inviting, setInviting] = useState(false);
@@ -39,6 +48,12 @@ export function TeamPage() {
       })
       .catch(err => setError(errorMessage(err)))
       .finally(() => setLoading(false));
+
+    setBillingError(null);
+    orgSeatsApi
+      .getBillingSummary(token)
+      .then(setBilling)
+      .catch(err => setBillingError(errorMessage(err)));
   }
 
   useEffect(() => {
@@ -107,6 +122,46 @@ export function TeamPage() {
       </div>
 
       <ErrorAlert error={error} />
+
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="text-lg">Billing</CardTitle>
+          <CardDescription>
+            Order summary for your subscription, including per-seat charges. Sending or
+            revoking invites updates this immediately.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {billingError ? (
+            <p className="text-sm text-destructive">{billingError}</p>
+          ) : !billing ? (
+            <p className="text-muted-foreground">Loading…</p>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div>
+                <p className="text-xs text-muted-foreground">Purchased seats</p>
+                <p className="text-xl font-semibold">{billing.purchasedSeats}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Current cycle total</p>
+                <p className="text-xl font-semibold">
+                  {formatMoney(billing.currentPeriodTotal, billing.currency)}
+                </p>
+                <p className="text-xs text-muted-foreground">Plan + seats, as billed now</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Upcoming bill</p>
+                <p className="text-xl font-semibold">
+                  {formatMoney(billing.upcomingTotal, billing.currency)}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Renews {new Date(billing.currentPeriodEnd * 1000).toLocaleDateString()}
+                </p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card className="mb-6">
         <CardHeader>
