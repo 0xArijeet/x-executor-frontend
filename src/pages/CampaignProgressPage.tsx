@@ -11,8 +11,10 @@ import { CAMPAIGN_DAY_LABELS, minuteToTimeOption } from "@/lib/campaign-schedule
 import { isAdmin, useOrgRole } from "@/lib/auth/RequireOrgRole";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { campaignsApi, connectionsApi } from "@/lib/hub/api";
-import type { CampaignStatusResponse, Connection } from "@/lib/hub/types";
-import { useEffect, useState } from "react";
+import type { CampaignDailyStat, CampaignStatusResponse, CampaignScheduleDay, ContactedUser, UpdateCampaignSettingsInput } from "@/lib/hub/types";
+import type { Connection } from "@/lib/hub/types";
+import { Label } from "@/components/ui/label";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 function StatBlock({ label, value }: { label: string; value: number | string }) {
@@ -38,6 +40,16 @@ export function CampaignProgressPage() {
   const [nameError, setNameError] = useState<string | null>(null);
   const [controlError, setControlError] = useState<string | null>(null);
   const [controlling, setControlling] = useState(false);
+  const [dailyStats, setDailyStats] = useState<CampaignDailyStat[]>([]);
+  const [contactedUsers, setContactedUsers] = useState<ContactedUser[]>([]);
+  const [contactedTotal, setContactedTotal] = useState(0);
+  const [contactedPage, setContactedPage] = useState(1);
+  const [loadingContacted, setLoadingContacted] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsDraft, setSettingsDraft] = useState<UpdateCampaignSettingsInput>({});
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
+  const dailyStatsFetched = useRef(false);
 
   function load() {
     if (!token || !campaignId) return;
@@ -132,12 +144,58 @@ export function CampaignProgressPage() {
     }
   }
 
+  useEffect(() => {
+    if (!token || !campaignId || dailyStatsFetched.current) return;
+    dailyStatsFetched.current = true;
+    campaignsApi.getDailyStats(token, campaignId).then(setDailyStats).catch(() => {});
+  }, [token, campaignId]);
+
+  useEffect(() => {
+    if (!token || !campaignId) return;
+    setLoadingContacted(true);
+    campaignsApi
+      .getContactedUsers(token, campaignId, { page: contactedPage, limit: 25 })
+      .then(res => { setContactedUsers(res.data); setContactedTotal(res.total); })
+      .catch(() => {})
+      .finally(() => setLoadingContacted(false));
+  }, [token, campaignId, contactedPage]);
+
+  async function handleSaveSettings() {
+    if (!token || !campaignId || !admin) return;
+    setSavingSettings(true);
+    setSettingsError(null);
+    try {
+      const result = await campaignsApi.updateSettings(token, campaignId, settingsDraft);
+      setCampaign(current =>
+        current
+          ? {
+              ...current,
+              dmsPerHour: result.dmsPerHour,
+              dailyLimitPerAccount: result.dailyLimitPerAccount ?? current.dailyLimitPerAccount,
+              schedule: (result.schedule as CampaignScheduleDay[] | undefined) ?? current.schedule,
+            }
+          : current,
+      );
+      setSettingsOpen(false);
+    } catch (err) {
+      setSettingsError(errorMessage(err));
+    } finally {
+      setSavingSettings(false);
+    }
+  }
+
   if (loading) return <p className="text-muted-foreground">Loading campaign…</p>;
   if (!campaign) return <ErrorAlert error={error ?? "Campaign not found"} />;
 
   const eta = formatRelativeEta(campaign.expectedEndAt);
   const processed =
     campaign.messagesSent + campaign.failedCount + (campaign.cancelledCount ?? 0);
+  const replyRate =
+    campaign.messagesSent > 0
+      ? ((campaign.repliesReceived / campaign.messagesSent) * 100).toFixed(1) + "%"
+      : "—";
+  const maxDailySent = Math.max(...dailyStats.map(d => d.sent), 1);
+  const contactedPageCount = Math.ceil(contactedTotal / 25);
   const senderUsernames =
     campaign.connectionIds
       ?.map(connectionId => connections.find(c => c.id === connectionId)?.xUsername)
@@ -345,11 +403,12 @@ export function CampaignProgressPage() {
               style={{ width: `${Math.min(campaign.progressPercent, 100)}%` }}
             />
           </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             <StatBlock label="Sent" value={campaign.messagesSent} />
             <StatBlock label="Failed" value={campaign.failedCount} />
             <StatBlock label="Cancelled" value={campaign.cancelledCount ?? 0} />
             <StatBlock label="Replies" value={campaign.repliesReceived} />
+            <StatBlock label="Reply rate" value={replyRate} />
             <StatBlock label="Remaining" value={campaign.remaining} />
           </div>
           {campaign.expectedEndAt && isActiveDelivery && (
@@ -370,24 +429,199 @@ export function CampaignProgressPage() {
         </CardContent>
       </Card>
 
+      {dailyStats.length > 0 && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-lg">Messages per day</CardTitle>
+            <CardDescription>DMs sent each calendar day (UTC)</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-end gap-1 h-24 overflow-x-auto">
+              {dailyStats.map(stat => (
+                <div
+                  key={stat.date}
+                  className="flex flex-col items-center gap-0.5 min-w-[2rem] flex-1 group relative"
+                  title={`${stat.date}: ${stat.sent} sent, ${stat.failed} failed`}
+                >
+                  <div className="w-full flex flex-col justify-end" style={{ height: "80px" }}>
+                    <div
+                      className="w-full bg-primary rounded-t-sm"
+                      style={{ height: `${Math.round((stat.sent / maxDailySent) * 80)}px` }}
+                    />
+                  </div>
+                  <p className="text-[9px] text-muted-foreground rotate-45 origin-left mt-1 whitespace-nowrap">
+                    {stat.date.slice(5)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {campaign.schedule && campaign.schedule.length > 0 && (
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="text-lg">Schedule</CardTitle>
-            <CardDescription>
-              {campaign.dmsPerHour} DMs/hour per account ·{" "}
-              {campaign.dailyLimitPerAccount ?? 2000} daily cap · {campaign.timezone ?? "UTC"}
-            </CardDescription>
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <CardTitle className="text-lg">Schedule</CardTitle>
+                <CardDescription>
+                  {campaign.dmsPerHour} DMs/hour per account ·{" "}
+                  {campaign.dailyLimitPerAccount ?? 400} daily cap · {campaign.timezone ?? "UTC"}
+                </CardDescription>
+              </div>
+              {admin && !["completed", "stopped", "failed"].includes(campaign.status) && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSettingsDraft({
+                      dmsPerHour: campaign.dmsPerHour,
+                      dailyLimitPerAccount: campaign.dailyLimitPerAccount,
+                    });
+                    setSettingsOpen(o => !o);
+                  }}
+                >
+                  {settingsOpen ? "Cancel" : "Edit rate"}
+                </Button>
+              )}
+            </div>
           </CardHeader>
-          <CardContent className="space-y-1 text-sm">
-            {campaign.schedule
-              .filter(day => day.enabled)
-              .map(day => (
-                <p key={day.dayOfWeek} className="text-muted-foreground">
-                  {CAMPAIGN_DAY_LABELS[day.dayOfWeek]}: {minuteToTimeOption(day.startMinute)} –{" "}
-                  {minuteToTimeOption(day.endMinute)}
-                </p>
-              ))}
+          <CardContent className="space-y-3">
+            <div className="space-y-1 text-sm">
+              {campaign.schedule
+                .filter(day => day.enabled)
+                .map(day => (
+                  <p key={day.dayOfWeek} className="text-muted-foreground">
+                    {CAMPAIGN_DAY_LABELS[day.dayOfWeek]}: {minuteToTimeOption(day.startMinute)} –{" "}
+                    {minuteToTimeOption(day.endMinute)}
+                  </p>
+                ))}
+            </div>
+            {settingsOpen && (
+              <div className="border-t border-border pt-4 space-y-4">
+                <div className="grid grid-cols-2 gap-4 max-w-sm">
+                  <div className="space-y-1">
+                    <Label htmlFor="dmsPerHour">DMs / hour</Label>
+                    <Input
+                      id="dmsPerHour"
+                      type="number"
+                      min={1}
+                      max={1000}
+                      value={settingsDraft.dmsPerHour ?? ""}
+                      onChange={e =>
+                        setSettingsDraft(d => ({
+                          ...d,
+                          dmsPerHour: parseInt(e.target.value, 10) || undefined,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="dailyCap">Daily cap / account</Label>
+                    <Input
+                      id="dailyCap"
+                      type="number"
+                      min={1}
+                      max={10000}
+                      value={settingsDraft.dailyLimitPerAccount ?? ""}
+                      onChange={e =>
+                        setSettingsDraft(d => ({
+                          ...d,
+                          dailyLimitPerAccount: parseInt(e.target.value, 10) || undefined,
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+                <ErrorAlert error={settingsError} />
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={savingSettings}
+                  onClick={handleSaveSettings}
+                >
+                  {savingSettings ? "Saving…" : "Save rate"}
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {contactedTotal > 0 && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-lg">Contacted users</CardTitle>
+            <CardDescription>{contactedTotal.toLocaleString()} users received a DM</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {loadingContacted ? (
+              <p className="text-sm text-muted-foreground">Loading…</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                      <th className="pb-2 pr-4 font-medium">Username</th>
+                      <th className="pb-2 pr-4 font-medium">Status</th>
+                      <th className="pb-2 pr-4 font-medium">Sent at</th>
+                      <th className="pb-2 font-medium">Replied</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {contactedUsers.map((user, i) => (
+                      <tr key={`${user.recipientUsername}-${i}`} className="border-b border-border/50 last:border-0">
+                        <td className="py-2 pr-4 font-mono text-xs">@{user.recipientUsername}</td>
+                        <td className="py-2 pr-4">
+                          <span
+                            className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                              user.status === "sent"
+                                ? "bg-green-500/10 text-green-600"
+                                : "bg-destructive/10 text-destructive"
+                            }`}
+                          >
+                            {user.status}
+                          </span>
+                        </td>
+                        <td className="py-2 pr-4 text-muted-foreground text-xs">
+                          {user.sentAt ? new Date(user.sentAt).toLocaleString() : "—"}
+                        </td>
+                        <td className="py-2 text-xs">
+                          {user.replyReceived ? "✓" : "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {contactedPageCount > 1 && (
+              <div className="flex items-center gap-2 text-sm">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={contactedPage <= 1}
+                  onClick={() => setContactedPage(p => p - 1)}
+                >
+                  Previous
+                </Button>
+                <span className="text-muted-foreground">
+                  {contactedPage} / {contactedPageCount}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={contactedPage >= contactedPageCount}
+                  onClick={() => setContactedPage(p => p + 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

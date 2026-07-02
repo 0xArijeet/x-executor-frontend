@@ -8,6 +8,10 @@ import { CampaignsListPage } from "@/pages/CampaignsListPage";
 import { ChatDetailPage } from "@/pages/ChatDetailPage";
 import { ChatsListPage } from "@/pages/ChatsListPage";
 import { ConnectPage } from "@/pages/ConnectPage";
+import { OnboardingPage } from "@/pages/OnboardingPage";
+import { LeadListCreatePage } from "@/pages/LeadListCreatePage";
+import { LeadListDetailPage } from "@/pages/LeadListDetailPage";
+import { LeadsListPage } from "@/pages/LeadsListPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { OAuthSuccessPage } from "@/pages/OAuthSuccessPage";
 import { OrgDashboardPage } from "@/pages/OrgDashboardPage";
@@ -48,6 +52,14 @@ const router = createBrowserRouter([
     path: "/oauth/success",
     element: <PublicShell />,
     children: [{ index: true, element: <OAuthSuccessPage /> }],
+  },
+  {
+    path: "/onboarding",
+    element: (
+      <RequireAuth>
+        <OnboardingPage />
+      </RequireAuth>
+    ),
   },
   {
     path: "/",
@@ -104,6 +116,30 @@ const router = createBrowserRouter([
         element: (
           <RequireOrgRole>
             <CampaignProgressPage />
+          </RequireOrgRole>
+        ),
+      },
+      {
+        path: "orgs/:orgId/leads",
+        element: (
+          <RequireOrgRole adminOnly>
+            <LeadsListPage />
+          </RequireOrgRole>
+        ),
+      },
+      {
+        path: "orgs/:orgId/leads/new",
+        element: (
+          <RequireOrgRole adminOnly>
+            <LeadListCreatePage />
+          </RequireOrgRole>
+        ),
+      },
+      {
+        path: "orgs/:orgId/leads/:listId",
+        element: (
+          <RequireOrgRole adminOnly>
+            <LeadListDetailPage />
           </RequireOrgRole>
         ),
       },

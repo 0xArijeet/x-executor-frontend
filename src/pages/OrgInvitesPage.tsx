@@ -19,6 +19,9 @@ export function OrgInvitesPage() {
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [quickInvite, setQuickInvite] = useState<Invite | null>(null);
+  const [quickCreating, setQuickCreating] = useState(false);
+  const [quickCopied, setQuickCopied] = useState(false);
 
   function load() {
     if (!token) return;
@@ -75,6 +78,29 @@ export function OrgInvitesPage() {
     setTimeout(() => setCopiedId(null), 2000);
   }
 
+  async function createQuickInvite() {
+    if (!token) return;
+    setQuickCreating(true);
+    setQuickInvite(null);
+    setError(null);
+    try {
+      const inv = await invitesApi.create(token, { expiresInHours: 0.5, maxUses: 1 });
+      setQuickInvite(inv);
+      load();
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setQuickCreating(false);
+    }
+  }
+
+  async function copyQuickUrl() {
+    if (!quickInvite?.connectUrl) return;
+    await navigator.clipboard.writeText(quickInvite.connectUrl);
+    setQuickCopied(true);
+    setTimeout(() => setQuickCopied(false), 2000);
+  }
+
   return (
     <div>
       <div className="mb-6">
@@ -85,6 +111,40 @@ export function OrgInvitesPage() {
       </div>
 
       <ErrorAlert error={error} />
+
+      {/* Quick single-use connect link for the extension flow */}
+      <Card className="mb-6 border-primary/30">
+        <CardHeader>
+          <CardTitle className="text-lg">Add X Account</CardTitle>
+          <CardDescription>
+            Generate a 30-minute single-use link. Send it to the person whose X account you want to connect.
+            They open the link, the Omnibot extension picks their account, and the connection is established.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {quickInvite?.connectUrl ? (
+            <>
+              <p className="text-xs font-mono break-all text-muted-foreground border border-border rounded p-2 bg-muted/40">
+                {quickInvite.connectUrl}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="secondary" onClick={copyQuickUrl}>
+                  <Copy className="mr-1 h-3 w-3" />
+                  {quickCopied ? "Copied!" : "Copy link"}
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setQuickInvite(null)}>
+                  Done
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">Link expires in 30 minutes and can only be used once.</p>
+            </>
+          ) : (
+            <Button onClick={createQuickInvite} disabled={quickCreating}>
+              {quickCreating ? "Generating…" : "Generate connect link"}
+            </Button>
+          )}
+        </CardContent>
+      </Card>
 
       <Card className="mb-6">
         <CardHeader>
@@ -135,11 +195,28 @@ export function OrgInvitesPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                <p className="text-xs text-muted-foreground break-all font-mono">{inv.inviteUrl}</p>
+                {inv.connectUrl && (
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-muted-foreground">Extension connect link</p>
+                    <p className="text-xs text-muted-foreground break-all font-mono">{inv.connectUrl}</p>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => copyUrl(inv.connectUrl!, `connect-${inv.id}`)}
+                    >
+                      <Copy className="mr-1 h-3 w-3" />
+                      {copiedId === `connect-${inv.id}` ? "Copied!" : "Copy connect link"}
+                    </Button>
+                  </div>
+                )}
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground">OAuth link (no extension)</p>
+                  <p className="text-xs text-muted-foreground break-all font-mono">{inv.inviteUrl}</p>
+                </div>
                 <div className="flex flex-wrap gap-2">
                   <Button
                     size="sm"
-                    variant="secondary"
+                    variant="outline"
                     onClick={() => copyUrl(inv.inviteUrl, inv.id)}
                   >
                     <Copy className="mr-1 h-3 w-3" />

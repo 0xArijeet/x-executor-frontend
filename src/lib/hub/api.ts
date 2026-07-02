@@ -1,4 +1,4 @@
-import { hubFetch, HubApiError } from "./client";
+import { hubFetch, HubApiError, apiBase } from "./client";
 import { userFromAccessToken } from "@/lib/auth/jwt";
 import type {
   AuthResponse,
@@ -8,6 +8,7 @@ import type {
   CreateInviteInput,
   Invite,
   InvitePublic,
+  OnboardingInput,
   Organization,
   UpdatePromptInput,
   UpdateConversationGoalInput,
@@ -20,6 +21,7 @@ import type {
   CreateCampaignResponse,
   CampaignStatusResponse,
   CampaignSummary,
+  CampaignListResponse,
   CampaignControlResponse,
   TargetProfileResponse,
   CampaignFollowersListResponse,
@@ -27,8 +29,22 @@ import type {
   UpdateCampaignNameResponse,
   PaginatedConversationsResponse,
   PaginatedMessagesResponse,
+  PaginatedHandoffsResponse,
+  ConversationReplyResponse,
   ValidateConnectionResponse,
   CampaignFollower,
+  CampaignDailyStat,
+  ContactedUsersResponse,
+  UpdateCampaignSettingsInput,
+  UpdateCampaignSettingsResponse,
+  LeadList,
+  TweetPreviewResponse,
+  Lead,
+  LeadListLeadsResponse,
+  CreateLeadListInput,
+  ImportLeadsInput,
+  ConnectAttemptResponse,
+  ValidatePinResponse,
 } from "./types";
 
 function normalizeCampaignFollower(
@@ -148,6 +164,16 @@ export const xSettingsApi = {
 /** @deprecated Use xSettingsApi — kept for gradual migration. */
 export const orgsApi = xSettingsApi;
 
+export const onboardingApi = {
+  complete(token: string, input: OnboardingInput) {
+    return hubFetch<{ ok: boolean }>("/auth/onboarding", {
+      method: "PATCH",
+      token,
+      body: JSON.stringify(input),
+    });
+  },
+};
+
 export const invitesApi = {
   getPublic(token: string) {
     return hubFetch<InvitePublic>(`/x/invites/public/${encodeURIComponent(token)}`);
@@ -167,6 +193,27 @@ export const invitesApi = {
       method: "DELETE",
       token,
     });
+  },
+};
+
+export const connectAttemptApi = {
+  /** Step 1 — send scraped X credentials; returns a nonce. */
+  create(inviteToken: string, accessToken: string, ct0: string, twuid: string) {
+    return hubFetch<ConnectAttemptResponse>("/x/connect-attempt", {
+      method: "POST",
+      body: JSON.stringify({ inviteToken, accessToken, ct0, twuid }),
+    });
+  },
+  /** Step 2 — validate xchat PIN before OAuth. */
+  validatePin(nonce: string, xchatPin: string) {
+    return hubFetch<ValidatePinResponse>(`/x/connect-attempt/${encodeURIComponent(nonce)}/validate-pin`, {
+      method: "POST",
+      body: JSON.stringify({ xchatPin }),
+    });
+  },
+  /** Returns the URL to open so the user completes X OAuth (step 3). */
+  oauthStartUrl(nonce: string): string {
+    return `${apiBase()}/api/hub/x/connect-attempt/${encodeURIComponent(nonce)}/oauth-start`;
   },
 };
 
@@ -224,7 +271,7 @@ export const connectionsApi = {
 
 export const campaignsApi = {
   list(token: string) {
-    return hubFetch<CampaignSummary[]>("/x/campaigns", { token });
+    return hubFetch<CampaignListResponse>("/x/campaigns", { token });
   },
   create(token: string, input: CreateCampaignInput) {
     return hubFetch<CreateCampaignResponse>("/x/campaigns", {
@@ -311,6 +358,33 @@ export const campaignsApi = {
       { method: "POST", token },
     );
   },
+  getDailyStats(token: string, campaignId: string) {
+    return hubFetch<CampaignDailyStat[]>(
+      `/x/campaigns/${encodeURIComponent(campaignId)}/daily-stats`,
+      { token },
+    );
+  },
+  updateSettings(token: string, campaignId: string, input: UpdateCampaignSettingsInput) {
+    return hubFetch<UpdateCampaignSettingsResponse>(
+      `/x/campaigns/${encodeURIComponent(campaignId)}/settings`,
+      { method: "PATCH", token, body: JSON.stringify(input) },
+    );
+  },
+  getContactedUsers(
+    token: string,
+    campaignId: string,
+    params?: { page?: number; limit?: number; status?: "sent" | "failed" },
+  ) {
+    const search = new URLSearchParams();
+    if (params?.page !== undefined) search.set("page", String(params.page));
+    if (params?.limit !== undefined) search.set("limit", String(params.limit));
+    if (params?.status) search.set("status", params.status);
+    const query = search.toString();
+    return hubFetch<ContactedUsersResponse>(
+      `/x/campaigns/${encodeURIComponent(campaignId)}/contacted-users${query ? `?${query}` : ""}`,
+      { token },
+    );
+  },
 };
 
 function paginationQuery(page?: number, limit?: number): string {
@@ -322,15 +396,131 @@ function paginationQuery(page?: number, limit?: number): string {
 }
 
 export const chatsApi = {
-  listConversations(token: string, page = 1, limit = 20) {
+  listConversations(token: string, page = 1, limit = 20, closed?: boolean) {
+    const search = new URLSearchParams();
+    search.set("page", String(page));
+    search.set("limit", String(limit));
+    if (closed !== undefined) search.set("closed", String(closed));
     return hubFetch<PaginatedConversationsResponse>(
-      `/x/chats${paginationQuery(page, limit)}`,
+      `/x/chats?${search.toString()}`,
       { token },
     );
   },
   getMessages(token: string, conversationId: string, page = 1, limit = 50) {
     return hubFetch<PaginatedMessagesResponse>(
       `/x/chats/${encodeURIComponent(conversationId)}${paginationQuery(page, limit)}`,
+      { token },
+    );
+  },
+  closeConversation(token: string, conversationId: string) {
+    return hubFetch<{ closed: boolean; conversationId: string }>(
+      `/x/chats/${encodeURIComponent(conversationId)}/close`,
+      { method: "POST", token },
+    );
+  },
+  reopenConversation(token: string, conversationId: string) {
+    return hubFetch<{ reopened: boolean; conversationId: string }>(
+      `/x/chats/${encodeURIComponent(conversationId)}/reopen`,
+      { method: "POST", token },
+    );
+  },
+  replyToConversation(token: string, conversationId: string, text: string) {
+    return hubFetch<ConversationReplyResponse>(
+      `/x/chats/${encodeURIComponent(conversationId)}/reply`,
+      { method: "POST", token, body: JSON.stringify({ text }) },
+    );
+  },
+};
+
+export const handoffsApi = {
+  list(token: string, page = 1, limit = 20, status?: string) {
+    const search = new URLSearchParams();
+    search.set("page", String(page));
+    search.set("limit", String(limit));
+    if (status) search.set("status", status);
+    return hubFetch<PaginatedHandoffsResponse>(
+      `/x/handoffs?${search.toString()}`,
+      { token },
+    );
+  },
+  get(token: string, handoffId: string) {
+    return hubFetch<import("./types").HandoffSummary>(
+      `/x/handoffs/${encodeURIComponent(handoffId)}`,
+      { token },
+    );
+  },
+  reply(token: string, handoffId: string, text: string) {
+    return hubFetch<ConversationReplyResponse>(
+      `/x/handoffs/${encodeURIComponent(handoffId)}/reply`,
+      { method: "POST", token, body: JSON.stringify({ text }) },
+    );
+  },
+  resolve(token: string, handoffId: string) {
+    return hubFetch<import("./types").HandoffSummary>(
+      `/x/handoffs/${encodeURIComponent(handoffId)}/resolve`,
+      { method: "PATCH", token },
+    );
+  },
+};
+
+export const leadsApi = {
+  createList(token: string, input: CreateLeadListInput) {
+    return hubFetch<LeadList>("/x/leads", {
+      method: "POST",
+      token,
+      body: JSON.stringify(input),
+    });
+  },
+  list(token: string) {
+    return hubFetch<LeadList[]>("/x/leads", { token });
+  },
+  get(token: string, listId: string) {
+    return hubFetch<LeadList>(`/x/leads/${encodeURIComponent(listId)}`, { token });
+  },
+  pause(token: string, listId: string) {
+    return hubFetch<LeadList>(`/x/leads/${encodeURIComponent(listId)}/pause`, {
+      method: "POST",
+      token,
+    });
+  },
+  stop(token: string, listId: string) {
+    return hubFetch<LeadList>(`/x/leads/${encodeURIComponent(listId)}/stop`, {
+      method: "POST",
+      token,
+    });
+  },
+  resume(token: string, listId: string) {
+    return hubFetch<LeadList>(`/x/leads/${encodeURIComponent(listId)}/resume`, {
+      method: "POST",
+      token,
+    });
+  },
+  importMore(token: string, listId: string, input: ImportLeadsInput) {
+    return hubFetch<LeadList>(`/x/leads/${encodeURIComponent(listId)}/import`, {
+      method: "POST",
+      token,
+      body: JSON.stringify(input),
+    });
+  },
+  getTweetPreview(token: string, tweetId: string) {
+    return hubFetch<TweetPreviewResponse>(
+      `/x/leads/tweet-preview?tweetId=${encodeURIComponent(tweetId)}`,
+      { token },
+    );
+  },
+  listLeads(
+    token: string,
+    listId: string,
+    params?: { page?: number; limit?: number; canDm?: boolean; q?: string },
+  ) {
+    const search = new URLSearchParams();
+    if (params?.page !== undefined) search.set("page", String(params.page));
+    if (params?.limit !== undefined) search.set("limit", String(params.limit));
+    if (params?.canDm !== undefined) search.set("canDm", String(params.canDm));
+    if (params?.q) search.set("q", params.q);
+    const query = search.toString();
+    return hubFetch<LeadListLeadsResponse>(
+      `/x/leads/${encodeURIComponent(listId)}/leads${query ? `?${query}` : ""}`,
       { token },
     );
   },

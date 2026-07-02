@@ -48,6 +48,14 @@ export function AppShell() {
                   Campaigns
                 </NavLink>
                 <NavLink
+                  to={`/orgs/${navOrgId}/leads`}
+                  className={({ isActive }) =>
+                    cn("text-muted-foreground hover:text-foreground", isActive && "text-foreground font-medium")
+                  }
+                >
+                  Leads
+                </NavLink>
+                <NavLink
                   to={`/orgs/${navOrgId}/invites`}
                   className={({ isActive }) =>
                     cn("text-muted-foreground hover:text-foreground", isActive && "text-foreground font-medium")

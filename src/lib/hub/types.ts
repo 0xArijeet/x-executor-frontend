@@ -4,6 +4,15 @@ export type User = {
   id: string;
   email: string;
   orgId: string;
+  onboardingCompleted?: boolean;
+};
+
+export type OnboardingInput = {
+  workspaceName: string;
+  website?: string;
+  teamSize?: string;
+  userRole?: string;
+  userGoal?: string;
 };
 
 export type AuthResponse = {
@@ -99,12 +108,16 @@ export type Invite = {
   id: string;
   inviteToken: string;
   inviteUrl: string;
+  connectUrl?: string;
   expiresAt: string;
   maxUses?: number;
   useCount?: number;
   expired?: boolean;
   createdAt?: string;
 };
+
+export type ConnectAttemptResponse = { nonce: string };
+export type ValidatePinResponse = { ok: boolean };
 
 export type InvitePublic = {
   orgName: string;
@@ -200,7 +213,7 @@ export type CampaignStatus =
   | "completed"
   | "failed";
 
-export type CampaignAudienceType = "manual" | "followers";
+export type CampaignAudienceType = "manual" | "followers" | "lead_list";
 
 export type CampaignSyncStatus = "pending" | "syncing" | "completed" | "failed";
 
@@ -386,10 +399,13 @@ export type ChatConversationSummary = {
   conversationId: string;
   recipientId: string;
   recipientUsername?: string;
+  recipientName?: string | null;
+  recipientProfilePictureUrl?: string | null;
   connectionId: string;
   xUsername: string;
   lastMessage: ChatLastMessage;
   messageCount: number;
+  isClosed: boolean;
 };
 
 export type PaginatedConversationsResponse = {
@@ -413,4 +429,156 @@ export type PaginatedMessagesResponse = {
   conversationId: string;
   page: number;
   limit: number;
+  isClosed: boolean;
+  recipientName?: string | null;
+  recipientProfilePictureUrl?: string | null;
+};
+
+export type HandoffSummary = {
+  _id: string;
+  orgId: string;
+  connectionId: string;
+  conversationId: string;
+  recipientId: string;
+  recipientUsername?: string | null;
+  recipientName?: string | null;
+  recipientProfilePictureUrl?: string | null;
+  category: string;
+  triggerReason: string;
+  contextSummary: string;
+  userMessage: string;
+  recentHistory?: Array<{ role: string; content: string }>;
+  status: 'open' | 'resolved';
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PaginatedHandoffsResponse = {
+  data: HandoffSummary[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
+export type ConversationReplyResponse = {
+  success: boolean;
+  conversationId: string;
+};
+
+export type CampaignDailyStat = {
+  date: string;
+  sent: number;
+  failed: number;
+};
+
+export type CampaignListStats = {
+  total: number;
+  active: number;
+  totalProspects: number;
+  totalSent: number;
+  totalReplies: number;
+};
+
+export type CampaignListResponse = {
+  data: CampaignSummary[];
+  stats: CampaignListStats;
+};
+
+export type ContactedUser = {
+  recipientUsername: string;
+  recipientId: string;
+  status: "sent" | "failed";
+  sentAt: string | null;
+  replyReceived: boolean;
+};
+
+export type ContactedUsersResponse = {
+  data: ContactedUser[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
+export type UpdateCampaignSettingsInput = {
+  dmsPerHour?: number;
+  dailyLimitPerAccount?: number;
+  schedule?: CampaignScheduleDay[];
+};
+
+export type UpdateCampaignSettingsResponse = {
+  id: string;
+  dmsPerHour: number;
+  dailyLimitPerAccount?: number;
+  schedule?: CampaignScheduleDay[];
+  updatedAt: string;
+};
+
+export type LeadListSourceType = "followers" | "following" | "retweeters";
+
+export type LeadListStatus = "syncing" | "paused" | "stopped" | "completed" | "failed";
+
+export type LeadList = {
+  id: string;
+  name: string;
+  sourceType: LeadListSourceType;
+  targetUsername?: string;
+  targetDisplayName?: string;
+  targetProfilePictureUrl?: string;
+  targetTweetId?: string;
+  targetTweetPreview?: string;
+  status: LeadListStatus;
+  syncedCount: number;
+  reachableCount: number;
+  totalCount?: number;
+  syncError?: string;
+  createdAt: string;
+};
+
+export type TweetPreviewResponse = {
+  id: string;
+  text: string;
+  authorUsername?: string;
+  authorName?: string;
+  authorProfilePicture?: string;
+  retweetCount?: number;
+  likeCount?: number;
+};
+
+export type Lead = {
+  id: string;
+  xUserId: string;
+  userName: string;
+  name: string;
+  profilePicture?: string;
+  description?: string;
+  location?: string;
+  followers?: number;
+  following?: number;
+  canDm: boolean;
+};
+
+export type LeadListLeadsResponse = {
+  data: Lead[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
+export type CreateLeadListInput = {
+  name: string;
+  sourceType: LeadListSourceType;
+  targetUsername?: string;
+  targetDisplayName?: string;
+  targetProfilePictureUrl?: string;
+  targetTweetId?: string;
+  targetTweetPreview?: string;
+};
+
+export type ImportLeadsInput = {
+  sourceType: LeadListSourceType;
+  targetUsername?: string;
+  targetDisplayName?: string;
+  targetProfilePictureUrl?: string;
+  targetTweetId?: string;
+  targetTweetPreview?: string;
 };

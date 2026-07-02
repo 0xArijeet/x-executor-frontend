@@ -20,8 +20,8 @@ import {
   validateCampaignSchedule,
   type CampaignScheduleDay,
 } from "@/lib/campaign-schedule";
-import { campaignsApi } from "@/lib/hub/api";
-import type { Connection, TargetProfileResponse } from "@/lib/hub/types";
+import { campaignsApi, leadsApi } from "@/lib/hub/api";
+import type { Connection, LeadList, TargetProfileResponse } from "@/lib/hub/types";
 import { useEffect, useState, type FormEvent } from "react";
 
 const DMS_PER_HOUR_DEFAULT = 15;
@@ -34,15 +34,18 @@ type CampaignCreateFormProps = {
 
 export function CampaignCreateForm({ token, connections, onCreated }: CampaignCreateFormProps) {
   const [name, setName] = useState("");
-  const [audienceType, setAudienceType] = useState<"manual" | "followers">("manual");
+  const [audienceType, setAudienceType] = useState<"manual" | "followers" | "lead_list">("manual");
   const [targetsRaw, setTargetsRaw] = useState("");
   const [targetUsername, setTargetUsername] = useState("");
   const [targetProfile, setTargetProfile] = useState<TargetProfileResponse | null>(null);
   const [fetchingProfile, setFetchingProfile] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
+  const [leadLists, setLeadLists] = useState<LeadList[]>([]);
+  const [leadListId, setLeadListId] = useState("");
+  const [canDmOnly, setCanDmOnly] = useState(true);
   const [messageText, setMessageText] = useState("");
   const [dmsPerHour, setDmsPerHour] = useState(DMS_PER_HOUR_DEFAULT);
-  const [dailyLimitPerAccount, setDailyLimitPerAccount] = useState(2000);
+  const [dailyLimitPerAccount, setDailyLimitPerAccount] = useState(400);
   const [timezone, setTimezone] = useState(detectBrowserTimezone);
   const [schedule, setSchedule] = useState<CampaignScheduleDay[]>(createDefaultCampaignSchedule);
   const [selectedConnectionIds, setSelectedConnectionIds] = useState<string[]>([]);
@@ -57,11 +60,15 @@ export function CampaignCreateForm({ token, connections, onCreated }: CampaignCr
   const hasAuthToken = authTokenCount > 0;
   const selectedRate = dmsPerHour;
   const selectedAccountCount = selectedConnectionIds.length;
+  const audienceReady =
+    audienceType === "manual"
+      ? parsedTargets.length > 0
+      : audienceType === "followers"
+        ? normalizedTargetUsername.length > 0
+        : leadListId.length > 0;
   const canSubmit =
     name.trim().length > 0 &&
-    (audienceType === "manual"
-      ? parsedTargets.length > 0
-      : normalizedTargetUsername.length > 0) &&
+    audienceReady &&
     messageText.trim().length > 0 &&
     hasAuthToken &&
     selectedAccountCount > 0 &&
@@ -77,6 +84,14 @@ export function CampaignCreateForm({ token, connections, onCreated }: CampaignCr
     setTargetProfile(null);
     setProfileError(null);
   }, [normalizedTargetUsername]);
+
+  useEffect(() => {
+    if (audienceType !== "lead_list") return;
+    leadsApi.list(token).then(lists => {
+      setLeadLists(lists);
+      if (lists.length > 0 && !leadListId) setLeadListId(lists[0]?.id ?? "");
+    }).catch(() => {});
+  }, [audienceType, token]);
 
   function toggleConnection(connectionId: string, checked: boolean) {
     setSelectedConnectionIds(current => {
@@ -125,19 +140,21 @@ export function CampaignCreateForm({ token, connections, onCreated }: CampaignCr
         audienceType,
         ...(audienceType === "manual"
           ? { targetUsernames: parsedTargets }
-          : {
-              targetUsername: normalizedTargetUsername,
-              ...(targetProfile
-                ? {
-                    targetDisplayName: targetProfile.displayName,
-                    targetProfilePictureUrl: targetProfile.profilePictureUrl,
-                    targetIsVerified: targetProfile.isVerified,
-                    targetIsBlueVerified: targetProfile.isBlueVerified,
-                    targetIsIdentityVerified: targetProfile.isIdentityVerified,
-                    targetFollowersCount: targetProfile.followersCount,
-                  }
-                : {}),
-            }),
+          : audienceType === "followers"
+            ? {
+                targetUsername: normalizedTargetUsername,
+                ...(targetProfile
+                  ? {
+                      targetDisplayName: targetProfile.displayName,
+                      targetProfilePictureUrl: targetProfile.profilePictureUrl,
+                      targetIsVerified: targetProfile.isVerified,
+                      targetIsBlueVerified: targetProfile.isBlueVerified,
+                      targetIsIdentityVerified: targetProfile.isIdentityVerified,
+                      targetFollowersCount: targetProfile.followersCount,
+                    }
+                  : {}),
+              }
+            : { leadListId, canDmOnly }),
         messageText: messageText.trim(),
         dmsPerHour: selectedRate,
         dailyLimitPerAccount,
@@ -172,7 +189,7 @@ export function CampaignCreateForm({ token, connections, onCreated }: CampaignCr
         <Label htmlFor="audienceType">Audience</Label>
         <Select
           value={audienceType}
-          onValueChange={value => setAudienceType(value as "manual" | "followers")}
+          onValueChange={value => setAudienceType(value as "manual" | "followers" | "lead_list")}
         >
           <SelectTrigger id="audienceType" className="max-w-xs">
             <SelectValue placeholder="Select audience type" />
@@ -180,14 +197,58 @@ export function CampaignCreateForm({ token, connections, onCreated }: CampaignCr
           <SelectContent>
             <SelectItem value="manual">Manual username list</SelectItem>
             <SelectItem value="followers">Followers of an account</SelectItem>
+            <SelectItem value="lead_list">Lead list</SelectItem>
           </SelectContent>
         </Select>
         <p className="text-xs text-muted-foreground">
           {audienceType === "manual"
             ? "Provide usernames directly — campaign starts immediately."
-            : "Sync followers from a target account — DM-able prospects are included and the campaign starts automatically."}
+            : audienceType === "followers"
+              ? "Sync followers from a target account — DM-able prospects are included and the campaign starts automatically."
+              : "Import recipients from a saved lead list."}
         </p>
       </div>
+
+      {audienceType === "lead_list" && (
+        <div className="space-y-3">
+          <div className="space-y-2">
+            <Label htmlFor="leadListId">Lead list</Label>
+            {leadLists.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No lead lists found. Create one first.</p>
+            ) : (
+              <Select value={leadListId} onValueChange={setLeadListId}>
+                <SelectTrigger id="leadListId" className="max-w-xs">
+                  <SelectValue placeholder="Select a lead list" />
+                </SelectTrigger>
+                <SelectContent>
+                  {leadLists.map(list => (
+                    <SelectItem key={list.id} value={list.id}>
+                      {list.name}
+                      {" "}
+                      <span className="text-muted-foreground text-xs">
+                        ({list.syncedCount.toLocaleString()} leads)
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+          {leadListId && (
+            <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={canDmOnly}
+                onChange={e => setCanDmOnly(e.target.checked)}
+                className="h-4 w-4 rounded border-border"
+              />
+              Only include leads who can DM ({
+                leadLists.find(l => l.id === leadListId)?.reachableCount.toLocaleString() ?? "?"
+              } reachable)
+            </label>
+          )}
+        </div>
+      )}
 
       {audienceType === "manual" ? (
         <div className="space-y-2">
@@ -259,11 +320,24 @@ export function CampaignCreateForm({ token, connections, onCreated }: CampaignCr
         <Label htmlFor="message">Message</Label>
         <Textarea
           id="message"
-          placeholder="Hi — we're reaching out from Acme."
+          placeholder="Hi {{first_name}} — we're reaching out from Acme."
           rows={4}
           value={messageText}
           onChange={e => setMessageText(e.target.value)}
         />
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-muted-foreground">Insert variable:</span>
+          {(["{{username}}", "{{name}}", "{{first_name}}"] as const).map(v => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => setMessageText(t => t + v)}
+              className="rounded border border-border bg-muted px-2 py-0.5 font-mono text-xs hover:bg-muted/70 transition-colors"
+            >
+              {v}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="space-y-2">
@@ -372,6 +446,12 @@ export function CampaignCreateForm({ token, connections, onCreated }: CampaignCr
             ? "Sync & start campaign"
             : "Launch campaign"}
       </Button>
+      {audienceType !== "followers" && (
+        <p className="text-xs text-muted-foreground">
+          Variables like <code className="font-mono">{"{{username}}"}</code>, <code className="font-mono">{"{{name}}"}</code>,{" "}
+          <code className="font-mono">{"{{first_name}}"}</code> are substituted per recipient at send time.
+        </p>
+      )}
     </form>
   );
 }

@@ -53,7 +53,7 @@ function readConfiguredUrl(
   return (process.env.PUBLIC_HUB_PUBLIC_BASE_URL ?? "").replace(/\/$/, "");
 }
 
-function apiBase(): string {
+export function apiBase(): string {
   return (
     readConfiguredUrl(import.meta.env.PUBLIC_HUB_API_URL, "PUBLIC_HUB_API_URL") ||
     readConfiguredUrl(import.meta.env.PUBLIC_API_BASE, "PUBLIC_API_BASE")
