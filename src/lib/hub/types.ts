@@ -110,8 +110,8 @@ export type Invite = {
   inviteUrl: string;
   connectUrl?: string;
   expiresAt: string;
-  maxUses?: number;
-  useCount?: number;
+  connected: number;
+  revoked: number;
   expired?: boolean;
   createdAt?: string;
 };
@@ -123,9 +123,7 @@ export type InvitePublic = {
   orgName: string;
   expired: boolean;
   revoked: boolean;
-  maxUsesReached: boolean;
-  useCount?: number;
-  maxUses?: number | null;
+  connected: boolean;
 };
 
 export type Connection = {
@@ -152,7 +150,6 @@ export type ValidateConnectionResponse = {
 
 export type CreateInviteInput = {
   expiresInHours?: number;
-  maxUses?: number;
 };
 
 export type UpdatePromptInput = {
@@ -289,10 +286,21 @@ export type CampaignSummary = {
   canDmFollowerCount?: number;
   totalTargets: number;
   messagesSent: number;
+  repliesReceived?: number;
   failedCount: number;
   progressPercent: number;
   createdAt: string;
   completedAt?: string;
+};
+
+export type AnalyticsOverview = {
+  totalReachouts: number;
+  totalConversations: number;
+  totalRepliesSent: number;
+  totalHandoffs: number;
+  campaignCount: number;
+  totalCampaignReplies: number;
+  replyRate: number;
 };
 
 export type UpdateCampaignNameResponse = {

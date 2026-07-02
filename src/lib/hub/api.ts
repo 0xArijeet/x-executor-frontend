@@ -45,6 +45,7 @@ import type {
   ImportLeadsInput,
   ConnectAttemptResponse,
   ValidatePinResponse,
+  AnalyticsOverview,
 } from "./types";
 
 function normalizeCampaignFollower(
@@ -523,5 +524,11 @@ export const leadsApi = {
       `/x/leads/${encodeURIComponent(listId)}/leads${query ? `?${query}` : ""}`,
       { token },
     );
+  },
+};
+
+export const analyticsApi = {
+  overview(token: string) {
+    return hubFetch<AnalyticsOverview>("/x/analytics", { token });
   },
 };

@@ -22,10 +22,11 @@ export function ContentProfilePage() {
     if (!orgId) return;
     Promise.all([profileApi.get(orgId), trendsApi.topicOptions()])
       .then(([p, opts]) => {
-        setProfile(p);
-        setToneTweets(p.toneTweets ?? []);
-        setSelectedTopics(p.selectedTopics ?? []);
-        setTopicGroups(opts.groups);
+        const safeProfile = p ?? {};
+        setProfile(safeProfile);
+        setToneTweets(safeProfile.toneTweets ?? []);
+        setSelectedTopics(safeProfile.selectedTopics ?? []);
+        setTopicGroups(opts?.groups ?? []);
       })
       .catch((e) => setError(e instanceof Error ? e.message : String(e)))
       .finally(() => setLoading(false));
