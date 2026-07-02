@@ -14,6 +14,7 @@ import { OrgDashboardPage } from "@/pages/OrgDashboardPage";
 import { OrgInvitesPage } from "@/pages/OrgInvitesPage";
 import { OrgSettingsPage } from "@/pages/OrgSettingsPage";
 import { OrgsListPage } from "@/pages/OrgsListPage";
+import { PurchasePlanPage } from "@/pages/PurchasePlanPage";
 import { RegisterPage } from "@/pages/RegisterPage";
 import { ContentProfilePage } from "@/pages/content/ContentProfilePage";
 import { ContentTrendsPage } from "@/pages/content/ContentTrendsPage";
@@ -32,6 +33,11 @@ const router = createBrowserRouter([
     path: "/register",
     element: <PublicShell />,
     children: [{ index: true, element: <RegisterPage /> }],
+  },
+  {
+    path: "/purchase-plan",
+    element: <PublicShell />,
+    children: [{ index: true, element: <PurchasePlanPage /> }],
   },
   {
     path: "/connect/:token",

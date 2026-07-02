@@ -2,6 +2,8 @@ import { hubFetch, HubApiError } from "./client";
 import { userFromAccessToken } from "@/lib/auth/jwt";
 import type {
   AuthResponse,
+  CheckoutSessionResponse,
+  NoahXPlan,
   Connection,
   CreateInviteInput,
   Invite,
@@ -62,6 +64,34 @@ export const authApi = {
       }
       throw err;
     }
+  },
+};
+
+export const billingApi = {
+  /** Authenticated purchase — used when the caller already holds a valid JWT. */
+  createCheckoutSession(token: string, planId: string, successUrl: string, cancelUrl: string) {
+    return hubFetch<CheckoutSessionResponse>("/billing/checkout-session", {
+      method: "POST",
+      token,
+      body: JSON.stringify({ planId, successUrl, cancelUrl }),
+    });
+  },
+  /** Used when login was blocked by the plan gate (402) and no JWT was issued. */
+  createCheckoutSessionForLogin(
+    email: string,
+    password: string,
+    planId: string,
+    successUrl: string,
+    cancelUrl: string,
+  ) {
+    return hubFetch<CheckoutSessionResponse>("/billing/checkout-session-for-login", {
+      method: "POST",
+      body: JSON.stringify({ email, password, planId, successUrl, cancelUrl }),
+    });
+  },
+  /** Public — the plan that grants NoahX access; fetched at runtime, never hardcoded. */
+  getNoahXPlan() {
+    return hubFetch<NoahXPlan>("/billing/noahx-plan");
   },
 };
 

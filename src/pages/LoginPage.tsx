@@ -4,17 +4,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth/AuthContext";
-import { validateHubApiUrl } from "@/lib/hub/client";
+import { HubApiError, validateHubApiUrl } from "@/lib/hub/client";
 import { useState, type FormEvent } from "react";
-import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
 export function LoginPage() {
   const { user, login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const apiConfigError = validateHubApiUrl();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const justPurchased = searchParams.get("purchased") === "1";
 
   if (user) return <Navigate to="/orgs" replace />;
 
@@ -23,11 +25,17 @@ export function LoginPage() {
     setError(null);
     setSubmitting(true);
     const form = new FormData(e.currentTarget);
+    const email = form.get("email") as string;
+    const password = form.get("password") as string;
     try {
-      await login(form.get("email") as string, form.get("password") as string);
+      await login(email, password);
       const redirectTo = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname ?? "/orgs";
       navigate(redirectTo, { replace: true });
     } catch (err) {
+      if (err instanceof HubApiError && err.status === 402) {
+        navigate("/purchase-plan", { state: { email, password } });
+        return;
+      }
       setError(errorMessage(err));
     } finally {
       setSubmitting(false);
@@ -41,6 +49,11 @@ export function LoginPage() {
         <CardDescription>Access your organization and X connections.</CardDescription>
       </CardHeader>
       <CardContent>
+        {justPurchased && !apiConfigError && !error && (
+          <p className="mb-4 rounded-md border border-primary/30 bg-primary/5 p-3 text-sm text-muted-foreground">
+            Payment received. Log in below to access your account.
+          </p>
+        )}
         <ErrorAlert error={apiConfigError ?? error} />
         {apiConfigError && (
           <p className="mb-4 text-sm text-muted-foreground">

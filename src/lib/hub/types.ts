@@ -11,6 +11,17 @@ export type AuthResponse = {
   user: User;
 };
 
+export type CheckoutSessionResponse = {
+  sessionId: string;
+  url: string;
+};
+
+export type NoahXPlan = {
+  planId: string;
+  title: string;
+  price: number;
+};
+
 export type OutreachStyle = "subtle" | "assertive";
 
 export type TeamMember = {
